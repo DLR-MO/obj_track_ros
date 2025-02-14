@@ -1,17 +1,13 @@
 #include "obj_track_ros/obj_track_ros_node.hpp"
 
-
-
 using namespace std::chrono_literals;
-
 
 namespace obj_track_ros
 {
   ObjTrackRosNode::ObjTrackRosNode() : Node("minimal_publisher"), Publisher("minimal_publisher"), Subscriber("minimal_publisher"), count_(0)
   {
     publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
-    timer_ = this->create_wall_timer(
-    500ms, std::bind(&ObjTrackRosNode::timer_callback, this));
+    timer_ = this->create_wall_timer(500ms, std::bind(&ObjTrackRosNode::timer_callback, this));
   }
 
   void ObjTrackRosNode::timer_callback()
