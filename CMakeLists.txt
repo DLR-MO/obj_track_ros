@@ -30,6 +30,8 @@ add_subdirectory(submodules/3DObjectTracking/M3T)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
 
 set(SRC_FILES src/obj_track_ros_node.cpp)
 set(INCLUDE_DIRS include submodules/3DObjectTracking/M3T/include)
@@ -40,7 +42,9 @@ target_link_libraries(object_tracking_node m3t)
 set_target_properties(object_tracking_node PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set_target_properties(object_tracking_node PROPERTIES LINK_FLAGS "${OpenMP_CXX_FLAGS}")
 
-ament_target_dependencies(object_tracking_node rclcpp std_msgs)
+ament_target_dependencies(object_tracking_node rclcpp std_msgs sensor_msgs cv_bridge)
+
+install(TARGETS object_tracking_node RUNTIME DESTINATION lib/${PROJECT_NAME})
 
 
 if(BUILD_TESTING)
