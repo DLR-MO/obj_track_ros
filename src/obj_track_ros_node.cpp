@@ -75,7 +75,7 @@ int main(int argc, char * argv[])
   renderer_geometry->AddBody(mug);
 
   const std::filesystem::path mug_model_path {
-    "/home/wiec_fa/ws/src/obj_track_ros/config/mug.obj"
+    "/home/wiec_fa/ws/src/obj_track_ros/config/mug.bin"
   };
   auto region { std::make_shared<m3t::RegionModel>("mug_region", mug, mug_model_path) };
   auto region_modality { std::make_shared<m3t::RegionModality>("mug_region_modal", mug, node->camera_color, region) };
@@ -86,9 +86,6 @@ int main(int argc, char * argv[])
   auto optimizer{
     std::make_shared<m3t::Optimizer>("mug_optimizer", link)};
   tracker->AddOptimizer(optimizer);
-
-  auto color_viewer{std::make_shared<m3t::ImageColorViewer>("color_viewer", node->camera_color)};
-  // tracker->AddViewer(color_viewer);
 
   auto normal_viewer{std::make_shared<m3t::NormalColorViewer>(
     "normal_viewer", node->camera_color, renderer_geometry)};
@@ -102,11 +99,6 @@ int main(int argc, char * argv[])
   auto detector{std::make_shared<m3t::StaticDetector>(
     "detector", mug_detector_path, optimizer)};
   tracker->AddDetector(detector);
-
-  // if (!GenerateConfiguredTracker(configfile_path, &tracker)) {
-  //   rclcpp::shutdown();
-  //   return -1;
-  // }
 
   tracker->AddPublisher(node);
   tracker->AddSubscriber(node);
