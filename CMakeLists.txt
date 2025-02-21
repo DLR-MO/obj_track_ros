@@ -15,7 +15,6 @@ OPTIONAL_COMPONENTS cudafeatures2d
 
 find_package(eigen3_cmake_module REQUIRED)
 
-
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -33,6 +32,12 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+    msg/TrackedObject.msg
+    DEPENDENCIES builtin_interfaces 
+)
 
 set(SRC_FILES src/obj_track_ros_node.cpp src/ros2_cameras.cpp)
 set(INCLUDE_DIRS include submodules/3DObjectTracking/M3T/include)
