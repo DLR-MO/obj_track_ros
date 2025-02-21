@@ -34,7 +34,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 
-set(SRC_FILES src/obj_track_ros_node.cpp)
+set(SRC_FILES src/obj_track_ros_node.cpp src/ros2_cameras.cpp)
 set(INCLUDE_DIRS include submodules/3DObjectTracking/M3T/include)
 
 add_executable(object_tracking_node ${SRC_FILES} )

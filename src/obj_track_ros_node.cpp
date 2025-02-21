@@ -8,18 +8,11 @@ namespace obj_track_ros
 {
   ObjTrackRosNode::ObjTrackRosNode() : Node("obj_track_ros"), Publisher("obj_track_ros"), Subscriber("obj_track_ros"), count_(0)
   {
-    publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
-    img_sub = this->create_subscription<sensor_msgs::msg::Image>("ee_camera_color", 10, std::bind(&ObjTrackRosNode::receive_image, this, _1));
-    cam_info_sub = this->create_subscription<sensor_msgs::msg::CameraInfo>("/ee_camera_color_info", 10, std::bind(&ObjTrackRosNode::receive_cam_info, this, _1));
-    timer_ = this->create_wall_timer(500ms, std::bind(&ObjTrackRosNode::timer_callback, this));
     camera_color = std::make_shared<obj_track_ros::Ros2ColorCamera>("color_camera");
-}
-
-  void ObjTrackRosNode::timer_callback()
-  {
-    auto message = std_msgs::msg::String();
-    message.data = "Hello, world! " + std::to_string(count_++);
-    publisher_->publish(message);
+    
+    img_sub = this->create_subscription<sensor_msgs::msg::Image>("ee_camera_color", 10, std::bind(&ObjTrackRosNode::receive_image, this, _1));
+    // depth_sub = this->create_subscription<sensor_msgs::msg::Image>("ee_camera_depth", 10, std::bind(&ObjTrackRosNode::receive_image, this, _1));
+    cam_info_sub = this->create_subscription<sensor_msgs::msg::CameraInfo>("/ee_camera_color_info", 10, std::bind(&Ros2ColorCamera::setCameraInfo, camera_color, _1));
   }
 
   void ObjTrackRosNode::receive_image(const sensor_msgs::msg::Image::SharedPtr msg) 
@@ -27,11 +20,6 @@ namespace obj_track_ros
     auto cvim = cv_bridge::toCvCopy(msg, msg->encoding);
     cv::cvtColor(cvim->image, cvim->image, cv::COLOR_BGR2RGB);
     camera_color->setImage(cvim->image);
-  }
-
-  void ObjTrackRosNode::receive_cam_info(const sensor_msgs::msg::CameraInfo::SharedPtr msg) 
-  {
-    camera_color->setCameraInfo(msg);
   }
 
   bool ObjTrackRosNode::UpdatePublisher(int iteration)
