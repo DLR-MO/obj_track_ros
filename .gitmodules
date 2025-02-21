@@ -1,6 +1,3 @@
-[submodule "3DObjectTracking"]
-	path = 3DObjectTracking
-	url = https://github.com/DLR-RM/3DObjectTracking.git
 [submodule "submodules/3DObjectTracking"]
 	path = submodules/3DObjectTracking
 	url = https://github.com/DLR-RM/3DObjectTracking.git
