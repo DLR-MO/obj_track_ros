@@ -29,6 +29,7 @@ class ObjTrackRosNode :
     bool UpdateSubscriber(int iteration) override;
     bool SetUp() override;
     std::shared_ptr<Ros2ColorCamera> camera_color;
+    std::shared_ptr<Ros2DepthCamera> camera_depth;
 };
 
 }
