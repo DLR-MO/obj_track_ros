@@ -22,6 +22,7 @@ namespace obj_track_ros
 
     bool image_ready = false;
     bool intrinsics_ready = false;
+    bool publish_overlay = false;
 
     bool SetUp() override;
 
@@ -49,6 +50,7 @@ namespace obj_track_ros
 
     bool image_ready = false;
     bool intrinsics_ready = false;
+    bool publish_overlay = false;
 
     bool SetUp() override;
 

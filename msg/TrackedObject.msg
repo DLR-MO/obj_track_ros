@@ -1,3 +1,4 @@
+string name
 string geometry_path
 int32 body_id
 int32 region_id

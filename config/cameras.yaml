@@ -1,0 +1,11 @@
+- name: color_camera
+  type: Ros2ColorCamera
+  image_topic: ee_camera_color
+  info_topic: ee_camera_color_info
+  publish_overlay: true
+
+- name: depth_camera
+  type: Ros2DepthCamera
+  image_topic: ee_camera_depth
+  info_topic: ee_camera_depth_info
+  scale: 1.0

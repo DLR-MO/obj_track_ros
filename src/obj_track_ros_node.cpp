@@ -1,17 +1,103 @@
 #include "obj_track_ros/obj_track_ros_node.hpp"
 
 using namespace std::chrono_literals;
+using std::placeholders::_1;
 
 namespace obj_track_ros
 {
   ObjTrackRosNode::ObjTrackRosNode() : Node("obj_track_ros"), Publisher("obj_track_ros"), Subscriber("obj_track_ros")
   {
-    camera_color = std::make_shared<obj_track_ros::Ros2ColorCamera>(this, "color_camera", "ee_camera_color", "ee_camera_color_info");
-    camera_depth = std::make_shared<obj_track_ros::Ros2DepthCamera>(this, "depth_camera", "ee_camera_depth", "ee_camera_depth_info", 0.1);
+    auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
+    descriptor.description = "List of camera config files to use for tracking";
+    descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
+    auto cam_defaults = rclcpp::ParameterValue(std::vector<std::string>());
+    declare_parameter("camera_configs", cam_defaults, descriptor);
+    configureCameras(get_parameter("camera_configs").as_string_array());
+
+    tracker = std::make_shared<m3t::Tracker>("tracker");
+    geometry = std::make_shared<m3t::RendererGeometry>("geometry");
+
+    tracked_obj_sub = create_subscription<obj_track_ros::msg::TrackedObject>("/tracked_objects", 10, std::bind(&ObjTrackRosNode::receiveTrackedBody, this, _1));
+  }
+
+  void ObjTrackRosNode::configureCameras(const std::vector<std::string> &camera_configs)
+  {
+    for (const std::string &filename : camera_configs)
+    {
+      YAML::Node root = YAML::LoadFile(filename);
+      for (std::size_t i = 0; i < root.size(); i++)
+      {
+        auto name = root[i]["name"].as<std::string>();
+        auto type = root[i]["type"].as<std::string>();
+        auto image_topic = root[i]["image_topic"].as<std::string>();
+        auto info_topic = root[i]["info_topic"].as<std::string>();
+        auto publish_overlay = root[i]["publish_overlay"].as<bool>(false);
+
+        if (type == "Ros2ColorCamera")
+        {
+          auto camera = std::make_shared<obj_track_ros::Ros2ColorCamera>(this, name, image_topic, info_topic);
+          camera->publish_overlay = publish_overlay;
+          color_cameras.push_back(camera);
+          auto renderer = std::make_shared<m3t::FocusedBasicDepthRenderer>(name + "_depth_renderer", geometry, camera);
+          color_renderers.push_back(renderer);
+        }
+        else if (type == "Ros2DepthCamera")
+        {
+          float scale = root[i]["scale"].as<float>(1.0);
+          auto camera = std::make_shared<obj_track_ros::Ros2DepthCamera>(this, name, image_topic, info_topic, scale);
+          camera->publish_overlay = publish_overlay;
+          depth_cameras.push_back(camera);
+          auto renderer = std::make_shared<m3t::FocusedBasicDepthRenderer>(name + "_depth_renderer", geometry, camera);
+          depth_renderers.push_back(renderer);
+        }
+      }
+    }
+  }
+
+  void ObjTrackRosNode::waitForCameras()
+  {
+    RCLCPP_INFO(get_logger(), "Wait for cameras...");
+    rclcpp::GenericRate rate(100.0);
+    bool cameras_ready = false;
+    while (rclcpp::ok() && !cameras_ready)
+    {
+      rclcpp::spin_some(shared_from_this());
+      cameras_ready = true;
+      for (auto &camera : color_cameras)
+      {
+        cameras_ready = cameras_ready && camera->is_ready();
+      }
+      for (auto &camera : depth_cameras)
+      {
+        cameras_ready = cameras_ready && camera->is_ready();
+      }
+      rate.sleep();
+    }
+    RCLCPP_INFO(get_logger(), "All cameras ready");
+  }
+
+  void ObjTrackRosNode::receiveTrackedBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg)
+  {
+    m3t::Transform3fA geometry2body_pose;
+    for (int i = 0; i < 16; i++)
+    {
+      geometry2body_pose(i / 4, i % 4) = msg->geometry2body_pose[i];
+    }
+    auto body = std::make_shared<m3t::Body>(
+        msg->name,
+        msg->geometry_path,
+        msg->geometry_unit_in_meter,
+        msg->geometry_counterclockwise,
+        msg->geometry_enable_culling,
+        geometry2body_pose);
+
+    geometry->AddBody(body);
+    RCLCPP_INFO(get_logger(), ("Added body " + msg->name).c_str());
   }
 
   bool ObjTrackRosNode::UpdatePublisher(int iteration)
   {
+
     rclcpp::spin_some(shared_from_this());
     return true;
   }
@@ -25,83 +111,103 @@ namespace obj_track_ros
   {
     return true;
   }
+
+  std::shared_ptr<m3t::Tracker> ObjTrackRosNode::getTracker()
+  {
+    return tracker;
+  }
 }
 
 int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
   std::shared_ptr<obj_track_ros::ObjTrackRosNode> node = std::make_shared<obj_track_ros::ObjTrackRosNode>();
+  node->getTracker()->AddPublisher(node);
+  node->getTracker()->AddSubscriber(node);
+  node->waitForCameras();
 
-  RCLCPP_INFO(node->get_logger(), "Wait for image message...");
-  rclcpp::GenericRate rate(100.0);
-  while (rclcpp::ok() && !node->camera_color->is_ready() && !node->camera_depth->is_ready())
-  {
-    rclcpp::spin_some(node->shared_from_this());
-    rate.sleep();
-  }
-
-  auto tracker{std::make_shared<m3t::Tracker>("tracker")};
-  auto renderer_geometry{
-      std::make_shared<m3t::RendererGeometry>("renderer_geometry")};
-
-  const std::filesystem::path mug_config_path{
-      "/home/wiec_fa/ws/src/obj_track_ros/config/mug.yaml"};
-  auto mug{std::make_shared<m3t::Body>("mug", mug_config_path)};
-  renderer_geometry->AddBody(mug);
-
-  auto color_depth_renderer{std::make_shared<m3t::FocusedBasicDepthRenderer>(
-      "color_depth_renderer", renderer_geometry, node->camera_color)};
-  color_depth_renderer->AddReferencedBody(mug);
-  auto depth_depth_renderer{std::make_shared<m3t::FocusedBasicDepthRenderer>(
-      "depth_depth_renderer", renderer_geometry, node->camera_depth)};
-  depth_depth_renderer->AddReferencedBody(mug);
-
-
-  const std::filesystem::path mug_region_model_path{
-      "/home/wiec_fa/ws/src/obj_track_ros/config/mug_region.bin"};
-  auto region{std::make_shared<m3t::RegionModel>("mug_region", mug, mug_region_model_path)};
-  auto region_modality{std::make_shared<m3t::RegionModality>("mug_region_modal", mug, node->camera_color, region)};
-  region_modality->ModelOcclusions(color_depth_renderer);
-
-  const std::filesystem::path mug_depth_model_path{
-      "/home/wiec_fa/ws/src/obj_track_ros/config/mug_depth.bin"};
-  auto depth{std::make_shared<m3t::DepthModel>("mug_depth", mug, mug_depth_model_path)};
-  auto depth_modality{std::make_shared<m3t::DepthModality>("mug_depth_modal", mug, node->camera_depth, depth)};
-  depth_modality->ModelOcclusions(depth_depth_renderer);
-
-  
-  auto link{std::make_shared<m3t::Link>("mug_link", mug)};
-  link->AddModality(depth_modality);
-  link->AddModality(region_modality);
-
-  auto optimizer{std::make_shared<m3t::Optimizer>("mug_optimizer", link)};
-  tracker->AddOptimizer(optimizer);
-
-  auto normal_viewer{std::make_shared<m3t::NormalColorViewer>(
-      "normal_viewer", node->camera_color, renderer_geometry)};
-  normal_viewer->set_opacity(0.5);
-
-  tracker->AddViewer(normal_viewer);
-
-  const std::filesystem::path mug_detector_path{
-      "/home/wiec_fa/ws/src/obj_track_ros/config/mug_detector.yaml"};
-  auto detector{std::make_shared<m3t::StaticDetector>(
-      "detector", mug_detector_path, optimizer)};
-  tracker->AddDetector(detector);
-
-  tracker->AddPublisher(node);
-  tracker->AddSubscriber(node);
-
-  if (!tracker->SetUp())
+  RCLCPP_INFO(node->get_logger(), "Setup tracker");
+  if (!node->getTracker()->SetUp())
   {
     rclcpp::shutdown();
     return -1;
   };
-  if (!tracker->RunTrackerProcess(true, true))
+
+  RCLCPP_INFO(node->get_logger(), "Run tracker process");
+  if (!node->getTracker()->RunTrackerProcess(true, true))
   {
     rclcpp::shutdown();
     return -1;
   }
+
+  // RCLCPP_INFO(node->get_logger(), "Wait for image message...");
+  // rclcpp::GenericRate rate(100.0);
+  // while (rclcpp::ok() && !node->camera_color->is_ready() && !node->camera_depth->is_ready())
+  // {
+  //   rclcpp::spin_some(node->shared_from_this());
+  //   rate.sleep();
+  // }
+
+  // auto tracker{std::make_shared<m3t::Tracker>("tracker")};
+  // auto renderer_geometry{
+  //     std::make_shared<m3t::RendererGeometry>("renderer_geometry")};
+
+  // const std::filesystem::path mug_config_path{
+  //     "/home/wiec_fa/ws/src/obj_track_ros/config/mug.yaml"};
+  // auto mug{std::make_shared<m3t::Body>("mug", mug_config_path)};
+  // renderer_geometry->AddBody(mug);
+
+  // auto color_depth_renderer{std::make_shared<m3t::FocusedBasicDepthRenderer>(
+  //     "color_depth_renderer", renderer_geometry, node->camera_color)};
+  // color_depth_renderer->AddReferencedBody(mug);
+  // auto depth_depth_renderer{std::make_shared<m3t::FocusedBasicDepthRenderer>(
+  //     "depth_depth_renderer", renderer_geometry, node->camera_depth)};
+  // depth_depth_renderer->AddReferencedBody(mug);
+
+  // const std::filesystem::path mug_region_model_path{
+  //     "/home/wiec_fa/ws/src/obj_track_ros/config/mug_region.bin"};
+  // auto region{std::make_shared<m3t::RegionModel>("mug_region", mug, mug_region_model_path)};
+  // auto region_modality{std::make_shared<m3t::RegionModality>("mug_region_modal", mug, node->camera_color, region)};
+  // region_modality->ModelOcclusions(color_depth_renderer);
+
+  // const std::filesystem::path mug_depth_model_path{
+  //     "/home/wiec_fa/ws/src/obj_track_ros/config/mug_depth.bin"};
+  // auto depth{std::make_shared<m3t::DepthModel>("mug_depth", mug, mug_depth_model_path)};
+  // auto depth_modality{std::make_shared<m3t::DepthModality>("mug_depth_modal", mug, node->camera_depth, depth)};
+  // depth_modality->ModelOcclusions(depth_depth_renderer);
+
+  // auto link{std::make_shared<m3t::Link>("mug_link", mug)};
+  // link->AddModality(depth_modality);
+  // link->AddModality(region_modality);
+
+  // auto optimizer{std::make_shared<m3t::Optimizer>("mug_optimizer", link)};
+  // tracker->AddOptimizer(optimizer);
+
+  // auto normal_viewer{std::make_shared<m3t::NormalColorViewer>(
+  //     "normal_viewer", node->camera_color, renderer_geometry)};
+  // normal_viewer->set_opacity(0.5);
+
+  // tracker->AddViewer(normal_viewer);
+
+  // const std::filesystem::path mug_detector_path{
+  //     "/home/wiec_fa/ws/src/obj_track_ros/config/mug_detector.yaml"};
+  // auto detector{std::make_shared<m3t::StaticDetector>(
+  //     "detector", mug_detector_path, optimizer)};
+  // tracker->AddDetector(detector);
+
+  // tracker->AddPublisher(node);
+  // tracker->AddSubscriber(node);
+
+  // if (!tracker->SetUp())
+  // {
+  //   rclcpp::shutdown();
+  //   return -1;
+  // };
+  // if (!tracker->RunTrackerProcess(true, true))
+  // {
+  //   rclcpp::shutdown();
+  //   return -1;
+  // }
 
   rclcpp::shutdown();
   return 0;

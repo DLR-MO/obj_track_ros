@@ -33,24 +33,40 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
+# generate msg classes
 rosidl_generate_interfaces(${PROJECT_NAME}
     msg/TrackedObject.msg
     DEPENDENCIES builtin_interfaces 
 )
+
+# allows to link against same package message definition
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_typesupport_cpp)
 
 set(SRC_FILES src/obj_track_ros_node.cpp src/ros2_cameras.cpp)
 set(INCLUDE_DIRS include submodules/3DObjectTracking/M3T/include)
 
 add_executable(object_tracking_node ${SRC_FILES} )
 target_include_directories(object_tracking_node PRIVATE ${INCLUDE_DIRS} )
-target_link_libraries(object_tracking_node m3t)
+target_link_libraries(object_tracking_node m3t ${YAML_CPP_LIBRARIES} ${cpp_typesupport_target})
 set_target_properties(object_tracking_node PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set_target_properties(object_tracking_node PROPERTIES LINK_FLAGS "${OpenMP_CXX_FLAGS}")
 
-ament_target_dependencies(object_tracking_node rclcpp std_msgs sensor_msgs cv_bridge OpenCV image_transport)
+ament_target_dependencies(object_tracking_node 
+  rclcpp 
+  std_msgs 
+  sensor_msgs 
+  cv_bridge 
+  OpenCV 
+  image_transport 
+  yaml-cpp)
 
 install(TARGETS object_tracking_node RUNTIME DESTINATION lib/${PROJECT_NAME})
+install(
+  DIRECTORY config launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
 
 if(BUILD_TESTING)
