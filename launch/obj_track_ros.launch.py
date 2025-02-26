@@ -10,6 +10,7 @@ def generate_launch_description():
     node = launch_ros.actions.Node(
         package="obj_track_ros",
         executable="object_tracking_node",
+        output="both",
         parameters=[
             {"camera_configs": [ f"{path}/config/cameras.yaml" ]}
         ]

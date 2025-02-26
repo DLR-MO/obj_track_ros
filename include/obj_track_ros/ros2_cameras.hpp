@@ -6,6 +6,7 @@
 #include <m3t/generator.h>
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
+#include "std_msgs/msg/header.hpp"
 #include "cv_bridge/cv_bridge.hpp"
 #include "opencv2/imgproc.hpp"
 
@@ -18,7 +19,8 @@ namespace obj_track_ros
     Ros2ColorCamera(rclcpp::Node *node,
                     const std::string &name,
                     const std::string &img_topic,
-                    const std::string &info_topic);
+                    const std::string &info_topic,
+                    bool publish_overlay);
 
     bool image_ready = false;
     bool intrinsics_ready = false;
@@ -34,9 +36,13 @@ namespace obj_track_ros
 
     bool is_ready();
 
+    void publishOverlay(cv::Mat overlay);
+
   private:
+    std_msgs::msg::Header header;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr img_pub;
   };
 
   class Ros2DepthCamera : public m3t::DepthCamera
@@ -50,7 +56,6 @@ namespace obj_track_ros
 
     bool image_ready = false;
     bool intrinsics_ready = false;
-    bool publish_overlay = false;
 
     bool SetUp() override;
 

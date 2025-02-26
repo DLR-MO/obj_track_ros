@@ -2,16 +2,26 @@
 
 using std::placeholders::_1;
 
+namespace m3t {
+  extern cv::Mat CalculateAlphaBlend(const cv::Mat &camera_image, const cv::Mat &renderer_image, float opacity);
+}
+
 namespace obj_track_ros
 {
   Ros2ColorCamera::Ros2ColorCamera(
       rclcpp::Node *node,
       const std::string &name,
       const std::string &img_topic,
-      const std::string &info_topic) : ColorCamera(name)
+      const std::string &info_topic,
+      bool publish_overlay_) : ColorCamera(name)
   {
+    this->publish_overlay = publish_overlay_;
     img_sub = node->create_subscription<sensor_msgs::msg::Image>(img_topic, 10, std::bind(&Ros2ColorCamera::setImage, this, _1));
     info_sub = node->create_subscription<sensor_msgs::msg::CameraInfo>(info_topic, 10, std::bind(&Ros2ColorCamera::setCameraInfo, this, _1));
+    if(publish_overlay)
+    {
+      img_pub = node->create_publisher<sensor_msgs::msg::Image>("obj_track_ros/overlay/" + name, rclcpp::SystemDefaultsQoS());
+    }
   }
 
   bool Ros2ColorCamera::SetUp()
@@ -30,6 +40,7 @@ namespace obj_track_ros
     auto cvim = cv_bridge::toCvCopy(msg, msg->encoding);
     cv::cvtColor(cvim->image, cvim->image, cv::COLOR_BGR2RGB);
     image_ = cvim->image;
+    header = msg->header;
     image_ready = true;
   }
 
@@ -49,6 +60,14 @@ namespace obj_track_ros
     return image_ready && intrinsics_ready;
   }
 
+  void Ros2ColorCamera::publishOverlay(cv::Mat overlay)
+  {
+    auto im = m3t::CalculateAlphaBlend(image_, overlay, 0.5);
+    auto cvim = cv_bridge::CvImage(header, sensor_msgs::image_encodings::BGR8, im);
+    sensor_msgs::msg::Image msg;
+    cvim.toImageMsg(msg);
+    img_pub->publish(msg);
+  }
 
   Ros2DepthCamera::Ros2DepthCamera(
       rclcpp::Node *node,

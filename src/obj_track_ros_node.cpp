@@ -3,6 +3,11 @@
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
+namespace m3t {
+  template <typename T>
+  extern bool AddPtrIfNameNotExists(const T &ptr, std::vector<T> *dest_ptrs);
+}
+
 namespace obj_track_ros
 {
   ObjTrackRosNode::ObjTrackRosNode() : Node("obj_track_ros"), Publisher("obj_track_ros"), Subscriber("obj_track_ros")
@@ -12,11 +17,10 @@ namespace obj_track_ros
     descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
     auto cam_defaults = rclcpp::ParameterValue(std::vector<std::string>());
     declare_parameter("camera_configs", cam_defaults, descriptor);
-    configureCameras(get_parameter("camera_configs").as_string_array());
-
+    
     tracker = std::make_shared<m3t::Tracker>("tracker");
     geometry = std::make_shared<m3t::RendererGeometry>("geometry");
-
+    configureCameras(get_parameter("camera_configs").as_string_array());
     tracked_obj_sub = create_subscription<obj_track_ros::msg::TrackedObject>("/tracked_objects", 10, std::bind(&ObjTrackRosNode::receiveTrackedBody, this, _1));
   }
 
@@ -35,17 +39,20 @@ namespace obj_track_ros
 
         if (type == "Ros2ColorCamera")
         {
-          auto camera = std::make_shared<obj_track_ros::Ros2ColorCamera>(this, name, image_topic, info_topic);
-          camera->publish_overlay = publish_overlay;
+          auto camera = std::make_shared<obj_track_ros::Ros2ColorCamera>(this, name, image_topic, info_topic, publish_overlay);
           color_cameras.push_back(camera);
           auto renderer = std::make_shared<m3t::FocusedBasicDepthRenderer>(name + "_depth_renderer", geometry, camera);
           color_renderers.push_back(renderer);
+          if(publish_overlay)
+          {
+            auto renderer = std::make_shared<m3t::FullNormalRenderer>(name + "_normal_renderer", geometry, camera);
+            normal_renderers.push_back(renderer);
+          }
         }
         else if (type == "Ros2DepthCamera")
         {
           float scale = root[i]["scale"].as<float>(1.0);
           auto camera = std::make_shared<obj_track_ros::Ros2DepthCamera>(this, name, image_topic, info_topic, scale);
-          camera->publish_overlay = publish_overlay;
           depth_cameras.push_back(camera);
           auto renderer = std::make_shared<m3t::FocusedBasicDepthRenderer>(name + "_depth_renderer", geometry, camera);
           depth_renderers.push_back(renderer);
@@ -90,13 +97,74 @@ namespace obj_track_ros
         msg->geometry_counterclockwise,
         msg->geometry_enable_culling,
         geometry2body_pose);
-
+    
     geometry->AddBody(body);
+
+    auto link{std::make_shared<m3t::Link>(msg->name + "_link", body)};
+
+    const std::filesystem::path body_region_model_path{ "/tmp/" + msg->name + "_region_model.bin" };
+    auto region{std::make_shared<m3t::RegionModel>(msg->name + "_region", body, body_region_model_path)};
+    
+    const std::filesystem::path body_depth_model_path{"/tmp/" + msg->name + "_depth_model.bin"};
+    auto depth{std::make_shared<m3t::DepthModel>(msg->name + "_depth", body, body_depth_model_path)};
+
+    for(int i=0; i<color_cameras.size(); i++)
+    {
+      color_renderers[i]->AddReferencedBody(body);
+      auto region_modality{std::make_shared<m3t::RegionModality>(msg->name + "_region_modal", body, color_cameras[i], region)};
+      region_modality->ModelOcclusions(color_renderers[i]);
+      link->AddModality(region_modality);
+    }
+
+    for(int i=0; i<depth_cameras.size(); i++)
+    {
+      depth_renderers[i]->AddReferencedBody(body);
+      auto depth_modality{std::make_shared<m3t::DepthModality>(msg->name + "_depth_modal", body, depth_cameras[i], depth)};
+      depth_modality->ModelOcclusions(depth_renderers[i]);
+      link->AddModality(depth_modality);
+    }
+
+    auto optimizer{std::make_shared<m3t::Optimizer>(msg->name + "_optimizer", link)};
+    tracker->AddOptimizer(optimizer);
+
+    m3t::Transform3fA link2world_pose;
+    for (int i = 0; i < 16; i++)
+    {
+      link2world_pose(i / 4, i % 4) = msg->detector_world_pose[i];
+    }
+
+    auto detector{std::make_shared<m3t::StaticDetector>(msg->name + "_detector", optimizer, link2world_pose)};
+    tracker->AddDetector(detector);
+
+    RCLCPP_INFO(get_logger(), ("Tracker setup " + msg->name).c_str());
+
+    tracker->SetUp();
+    for(auto &renderer : normal_renderers)
+    {
+      renderer->SetUp();
+    }
+
     RCLCPP_INFO(get_logger(), ("Added body " + msg->name).c_str());
   }
 
   bool ObjTrackRosNode::UpdatePublisher(int iteration)
   {
+    int renderer_index = 0;
+    // RCLCPP_INFO(get_logger(), std::to_string(color_cameras.size()).c_str());
+    if(normal_renderers.size() > 0)
+    {
+      for(int i=0; i < color_cameras.size(); i++)
+      {
+        if(color_cameras[i]->publish_overlay && normal_renderers[renderer_index]->set_up())
+        {
+          normal_renderers[renderer_index]->StartRendering();
+          normal_renderers[renderer_index]->FetchNormalImage();
+          auto image = normal_renderers[renderer_index]->normal_image();
+          color_cameras[i]->publishOverlay(image);
+          renderer_index += 1;
+        }
+      }
+    }
 
     rclcpp::spin_some(shared_from_this());
     return true;
