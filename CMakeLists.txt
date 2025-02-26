@@ -13,8 +13,6 @@ REQUIRED COMPONENTS core imgproc highgui imgcodecs calib3d features2d xfeatures2
 OPTIONAL_COMPONENTS cudafeatures2d
 )
 
-find_package(eigen3_cmake_module REQUIRED)
-
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -31,7 +29,6 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(image_transport REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
@@ -58,8 +55,7 @@ ament_target_dependencies(object_tracking_node
   std_msgs 
   sensor_msgs 
   cv_bridge 
-  OpenCV 
-  image_transport 
+  OpenCV
   yaml-cpp)
 
 install(TARGETS object_tracking_node RUNTIME DESTINATION lib/${PROJECT_NAME})

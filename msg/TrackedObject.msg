@@ -1,7 +1,5 @@
 string name
 string geometry_path
-int32 body_id
-int32 region_id
 
 float32 geometry_unit_in_meter 1.0
 bool geometry_counterclockwise true
