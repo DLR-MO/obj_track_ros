@@ -25,13 +25,11 @@ namespace obj_track_ros
 
 class ObjTrackRosNode : 
   public rclcpp::Node, 
-  public m3t::Publisher, 
-  public m3t::Subscriber
+  public m3t::Publisher
 {
   public:
     ObjTrackRosNode();
     bool UpdatePublisher(int iteration) override;
-    bool UpdateSubscriber(int iteration) override;
     bool SetUp() override;
     std::shared_ptr<Ros2ColorCamera> camera_color;
     std::shared_ptr<Ros2DepthCamera> camera_depth;

@@ -10,7 +10,7 @@ namespace m3t {
 
 namespace obj_track_ros
 {
-  ObjTrackRosNode::ObjTrackRosNode() : Node("obj_track_ros"), Publisher("obj_track_ros"), Subscriber("obj_track_ros")
+  ObjTrackRosNode::ObjTrackRosNode() : Node("obj_track_ros"), Publisher("obj_track_ros")
   {
     auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
     descriptor.description = "List of camera config files to use for tracking";
@@ -175,11 +175,6 @@ namespace obj_track_ros
     return true;
   }
 
-  bool ObjTrackRosNode::UpdateSubscriber(int iteration)
-  {
-    return true;
-  }
-
   std::shared_ptr<m3t::Tracker> ObjTrackRosNode::getTracker()
   {
     return tracker;
@@ -191,7 +186,6 @@ int main(int argc, char *argv[])
   rclcpp::init(argc, argv);
   std::shared_ptr<obj_track_ros::ObjTrackRosNode> node = std::make_shared<obj_track_ros::ObjTrackRosNode>();
   node->getTracker()->AddPublisher(node);
-  node->getTracker()->AddSubscriber(node);
   node->waitForCameras();
 
   RCLCPP_INFO(node->get_logger(), "Setup tracker");
