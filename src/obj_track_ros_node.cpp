@@ -17,7 +17,7 @@ namespace obj_track_ros
     descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
     auto cam_defaults = rclcpp::ParameterValue(std::vector<std::string>());
     declare_parameter("camera_configs", cam_defaults, descriptor);
-    
+
     tracker = std::make_shared<m3t::Tracker>("tracker");
     geometry = std::make_shared<m3t::RendererGeometry>("geometry");
     configureCameras(get_parameter("camera_configs").as_string_array());
@@ -145,12 +145,12 @@ namespace obj_track_ros
     }
 
     RCLCPP_INFO(get_logger(), ("Added body " + msg->name).c_str());
+    tracker->QuitTrackerProcess();
   }
 
   bool ObjTrackRosNode::UpdatePublisher(int iteration)
   {
     int renderer_index = 0;
-    // RCLCPP_INFO(get_logger(), std::to_string(color_cameras.size()).c_str());
     if(normal_renderers.size() > 0)
     {
       for(int i=0; i < color_cameras.size(); i++)
@@ -201,81 +201,16 @@ int main(int argc, char *argv[])
     return -1;
   };
 
-  RCLCPP_INFO(node->get_logger(), "Run tracker process");
-  if (!node->getTracker()->RunTrackerProcess(true, true))
+  RCLCPP_INFO(node->get_logger(), "Start tracker process");
+  while(true)
   {
-    rclcpp::shutdown();
-    return -1;
+    if (!node->getTracker()->RunTrackerProcess(true, true))
+    {
+      rclcpp::shutdown();
+      return -1;
+    }
+    RCLCPP_INFO(node->get_logger(), "Restart tracker process");
   }
-
-  // RCLCPP_INFO(node->get_logger(), "Wait for image message...");
-  // rclcpp::GenericRate rate(100.0);
-  // while (rclcpp::ok() && !node->camera_color->is_ready() && !node->camera_depth->is_ready())
-  // {
-  //   rclcpp::spin_some(node->shared_from_this());
-  //   rate.sleep();
-  // }
-
-  // auto tracker{std::make_shared<m3t::Tracker>("tracker")};
-  // auto renderer_geometry{
-  //     std::make_shared<m3t::RendererGeometry>("renderer_geometry")};
-
-  // const std::filesystem::path mug_config_path{
-  //     "/home/wiec_fa/ws/src/obj_track_ros/config/mug.yaml"};
-  // auto mug{std::make_shared<m3t::Body>("mug", mug_config_path)};
-  // renderer_geometry->AddBody(mug);
-
-  // auto color_depth_renderer{std::make_shared<m3t::FocusedBasicDepthRenderer>(
-  //     "color_depth_renderer", renderer_geometry, node->camera_color)};
-  // color_depth_renderer->AddReferencedBody(mug);
-  // auto depth_depth_renderer{std::make_shared<m3t::FocusedBasicDepthRenderer>(
-  //     "depth_depth_renderer", renderer_geometry, node->camera_depth)};
-  // depth_depth_renderer->AddReferencedBody(mug);
-
-  // const std::filesystem::path mug_region_model_path{
-  //     "/home/wiec_fa/ws/src/obj_track_ros/config/mug_region.bin"};
-  // auto region{std::make_shared<m3t::RegionModel>("mug_region", mug, mug_region_model_path)};
-  // auto region_modality{std::make_shared<m3t::RegionModality>("mug_region_modal", mug, node->camera_color, region)};
-  // region_modality->ModelOcclusions(color_depth_renderer);
-
-  // const std::filesystem::path mug_depth_model_path{
-  //     "/home/wiec_fa/ws/src/obj_track_ros/config/mug_depth.bin"};
-  // auto depth{std::make_shared<m3t::DepthModel>("mug_depth", mug, mug_depth_model_path)};
-  // auto depth_modality{std::make_shared<m3t::DepthModality>("mug_depth_modal", mug, node->camera_depth, depth)};
-  // depth_modality->ModelOcclusions(depth_depth_renderer);
-
-  // auto link{std::make_shared<m3t::Link>("mug_link", mug)};
-  // link->AddModality(depth_modality);
-  // link->AddModality(region_modality);
-
-  // auto optimizer{std::make_shared<m3t::Optimizer>("mug_optimizer", link)};
-  // tracker->AddOptimizer(optimizer);
-
-  // auto normal_viewer{std::make_shared<m3t::NormalColorViewer>(
-  //     "normal_viewer", node->camera_color, renderer_geometry)};
-  // normal_viewer->set_opacity(0.5);
-
-  // tracker->AddViewer(normal_viewer);
-
-  // const std::filesystem::path mug_detector_path{
-  //     "/home/wiec_fa/ws/src/obj_track_ros/config/mug_detector.yaml"};
-  // auto detector{std::make_shared<m3t::StaticDetector>(
-  //     "detector", mug_detector_path, optimizer)};
-  // tracker->AddDetector(detector);
-
-  // tracker->AddPublisher(node);
-  // tracker->AddSubscriber(node);
-
-  // if (!tracker->SetUp())
-  // {
-  //   rclcpp::shutdown();
-  //   return -1;
-  // };
-  // if (!tracker->RunTrackerProcess(true, true))
-  // {
-  //   rclcpp::shutdown();
-  //   return -1;
-  // }
 
   rclcpp::shutdown();
   return 0;
