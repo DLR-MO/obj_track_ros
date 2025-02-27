@@ -138,7 +138,7 @@ namespace obj_track_ros
     for(int i=0; i<color_cameras.size(); i++)
     {
       color_renderers[i]->AddReferencedBody(body);
-      auto region_modality{std::make_shared<m3t::RegionModality>(msg->name + "_region_modal", body, color_cameras[i], region)};
+      auto region_modality{std::make_shared<m3t::RegionModality>(msg->name + "_region_modal_" + color_cameras[i]->name(), body, color_cameras[i], region)};
       region_modality->ModelOcclusions(color_renderers[i]);
       link->AddModality(region_modality);
     }
@@ -146,7 +146,7 @@ namespace obj_track_ros
     for(int i=0; i<depth_cameras.size(); i++)
     {
       depth_renderers[i]->AddReferencedBody(body);
-      auto depth_modality{std::make_shared<m3t::DepthModality>(msg->name + "_depth_modal", body, depth_cameras[i], depth)};
+      auto depth_modality{std::make_shared<m3t::DepthModality>(msg->name + "_depth_modal_" + depth_cameras[i]->name(), body, depth_cameras[i], depth)};
       depth_modality->ModelOcclusions(depth_renderers[i]);
       link->AddModality(depth_modality);
     }
