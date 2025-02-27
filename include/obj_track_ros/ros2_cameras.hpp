@@ -9,6 +9,8 @@
 #include "std_msgs/msg/header.hpp"
 #include "cv_bridge/cv_bridge.hpp"
 #include "opencv2/imgproc.hpp"
+#include "tf2_ros/buffer.h"
+#include "Eigen/Dense"
 
 namespace obj_track_ros
 {
@@ -20,6 +22,7 @@ namespace obj_track_ros
                     const std::string &name,
                     const std::string &img_topic,
                     const std::string &info_topic,
+                    const std::string &frame,
                     bool publish_overlay);
 
     bool image_ready = false;
@@ -38,10 +41,13 @@ namespace obj_track_ros
 
     void publishOverlay(cv::Mat overlay);
 
+    void updatePose(std::shared_ptr<tf2_ros::Buffer> buffer);
+
     std_msgs::msg::Header getHeader();
 
   private:
     std_msgs::msg::Header header;
+    std::string frame;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr img_pub;
@@ -54,6 +60,7 @@ namespace obj_track_ros
                     const std::string &name,
                     const std::string &img_topic,
                     const std::string &info_topic,
+                    const std::string &frame,
                     float depth_scale);
 
     bool image_ready = false;
@@ -69,9 +76,12 @@ namespace obj_track_ros
 
     bool is_ready();
 
+    void updatePose(std::shared_ptr<tf2_ros::Buffer> buffer);
+
     std_msgs::msg::Header getHeader();
 
   private:
+    std::string frame;
     std_msgs::msg::Header header;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub;

@@ -10,7 +10,7 @@ namespace m3t {
 
 namespace obj_track_ros
 {
-  ObjTrackRosNode::ObjTrackRosNode() : Node("obj_track_ros"), Publisher("obj_track_ros")
+  ObjTrackRosNode::ObjTrackRosNode() : Node("obj_track_ros"), Publisher("obj_track_ros"), Subscriber("obj_track_ros")
   {
     auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
     descriptor.description = "List of camera config files to use for tracking";
@@ -24,6 +24,8 @@ namespace obj_track_ros
 
     tracked_obj_sub = create_subscription<obj_track_ros::msg::TrackedObject>("/tracked_objects", 10, std::bind(&ObjTrackRosNode::receiveTrackedBody, this, _1));
     tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+    tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
   }
 
   void ObjTrackRosNode::configureCameras(const std::vector<std::string> &camera_configs)
@@ -35,13 +37,14 @@ namespace obj_track_ros
       {
         auto name = root[i]["name"].as<std::string>();
         auto type = root[i]["type"].as<std::string>();
+        auto frame = root[i]["frame"].as<std::string>();
         auto image_topic = root[i]["image_topic"].as<std::string>();
         auto info_topic = root[i]["info_topic"].as<std::string>();
         auto publish_overlay = root[i]["publish_overlay"].as<bool>(false);
 
         if (type == "Ros2ColorCamera")
         {
-          auto camera = std::make_shared<obj_track_ros::Ros2ColorCamera>(this, name, image_topic, info_topic, publish_overlay);
+          auto camera = std::make_shared<obj_track_ros::Ros2ColorCamera>(this, name, image_topic, info_topic, frame, publish_overlay);
           color_cameras.push_back(camera);
           auto renderer = std::make_shared<m3t::FocusedBasicDepthRenderer>(name + "_depth_renderer", geometry, camera);
           color_renderers.push_back(renderer);
@@ -54,7 +57,7 @@ namespace obj_track_ros
         else if (type == "Ros2DepthCamera")
         {
           float scale = root[i]["scale"].as<float>(1.0);
-          auto camera = std::make_shared<obj_track_ros::Ros2DepthCamera>(this, name, image_topic, info_topic, scale);
+          auto camera = std::make_shared<obj_track_ros::Ros2DepthCamera>(this, name, image_topic, info_topic, frame, scale);
           depth_cameras.push_back(camera);
           auto renderer = std::make_shared<m3t::FocusedBasicDepthRenderer>(name + "_depth_renderer", geometry, camera);
           depth_renderers.push_back(renderer);
@@ -172,6 +175,19 @@ namespace obj_track_ros
     tracker->QuitTrackerProcess();
   }
 
+  bool ObjTrackRosNode::UpdateSubscriber(int iteration)
+  {
+    for(auto &camera : color_cameras)
+    {
+      camera->updatePose(tf_buffer);
+    }
+    for(auto &camera : depth_cameras)
+    {
+      camera->updatePose(tf_buffer);
+    }
+    return true;
+  }
+
   bool ObjTrackRosNode::UpdatePublisher(int iteration)
   {
     int renderer_index = 0;
@@ -192,7 +208,7 @@ namespace obj_track_ros
 
     for(auto &body : tracker->body_ptrs())
     {
-      auto transform = body->world2body_pose();
+      auto transform = body->body2world_pose();
       auto frame = name_to_tracked_obj[body->name()]->frame;
       auto latest_header = getLatestImageHeader();
 
@@ -233,6 +249,7 @@ int main(int argc, char *argv[])
   rclcpp::init(argc, argv);
   std::shared_ptr<obj_track_ros::ObjTrackRosNode> node = std::make_shared<obj_track_ros::ObjTrackRosNode>();
   node->getTracker()->AddPublisher(node);
+  node->getTracker()->AddSubscriber(node);
   node->waitForCameras();
 
   RCLCPP_INFO(node->get_logger(), "Setup tracker");

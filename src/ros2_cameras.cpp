@@ -13,9 +13,11 @@ namespace obj_track_ros
       const std::string &name,
       const std::string &img_topic,
       const std::string &info_topic,
+      const std::string &frame,
       bool publish_overlay_) : ColorCamera(name)
   {
     this->publish_overlay = publish_overlay_;
+    this->frame = frame;
     img_sub = node->create_subscription<sensor_msgs::msg::Image>(img_topic, 10, std::bind(&Ros2ColorCamera::setImage, this, _1));
     info_sub = node->create_subscription<sensor_msgs::msg::CameraInfo>(info_topic, 10, std::bind(&Ros2ColorCamera::setCameraInfo, this, _1));
     if(publish_overlay)
@@ -69,6 +71,23 @@ namespace obj_track_ros
     img_pub->publish(msg);
   }
 
+  void Ros2ColorCamera::updatePose(std::shared_ptr<tf2_ros::Buffer> buffer)
+  {
+    auto transform = buffer->lookupTransform("world", frame, rclcpp::Time()).transform;
+    auto q = transform.rotation;
+    auto p = transform.translation;
+    Eigen::Quaternionf quat(q.w, q.x, q.y, q.z);
+    m3t::Transform3fA t;
+    t = quat.toRotationMatrix();
+    t(0, 3) = p.x;
+    t(1, 3) = p.y;
+    t(2, 3) = p.z;
+    set_camera2world_pose(t);
+    // set_world2camera_pose(t);
+
+    // std::cout << world2camera_pose().matrix() << std::endl;
+  }
+
   std_msgs::msg::Header Ros2ColorCamera::getHeader()
   {
     return header;
@@ -79,9 +98,11 @@ namespace obj_track_ros
       const std::string &name,
       const std::string &img_topic,
       const std::string &info_topic,
+      const std::string &frame,
       float depth_scale
       ) : DepthCamera(name)
   {
+    this->frame = frame;
     depth_scale_ = depth_scale;
     img_sub = node->create_subscription<sensor_msgs::msg::Image>(img_topic, 10, std::bind(&Ros2DepthCamera::setImage, this, _1));
     info_sub = node->create_subscription<sensor_msgs::msg::CameraInfo>(info_topic, 10, std::bind(&Ros2DepthCamera::setCameraInfo, this, _1));
@@ -121,6 +142,21 @@ namespace obj_track_ros
   bool Ros2DepthCamera::is_ready()
   {
     return image_ready && intrinsics_ready;
+  }
+
+  void Ros2DepthCamera::updatePose(std::shared_ptr<tf2_ros::Buffer> buffer)
+  {
+    auto transform = buffer->lookupTransform("world", frame, rclcpp::Time()).transform;
+    auto q = transform.rotation;
+    auto p = transform.translation;
+    Eigen::Quaternionf quat(q.x, q.y, q.z, q.w);
+    m3t::Transform3fA t;
+    t = quat.toRotationMatrix();
+    t(0, 3) = p.x;
+    t(1, 3) = p.y;
+    t(2, 3) = p.z;
+    // set_camera2world_pose(t);
+    set_world2camera_pose(t);
   }
 
   std_msgs::msg::Header Ros2DepthCamera::getHeader()

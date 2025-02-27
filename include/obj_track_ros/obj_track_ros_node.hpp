@@ -17,6 +17,8 @@
 #include <yaml-cpp/yaml.h>
 #include <Eigen/Dense>
 #include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/buffer.h"
 
 #include <m3t/tracker.h>
 #include <m3t/generator.h>
@@ -28,11 +30,13 @@ namespace obj_track_ros
 
 class ObjTrackRosNode : 
   public rclcpp::Node, 
-  public m3t::Publisher
+  public m3t::Publisher,
+  public m3t::Subscriber
 {
   public:
     ObjTrackRosNode();
     bool UpdatePublisher(int iteration) override;
+    bool UpdateSubscriber(int iteration) override;
     bool SetUp() override;
     std::shared_ptr<m3t::Tracker> getTracker();
     void waitForCameras();
@@ -50,6 +54,8 @@ class ObjTrackRosNode :
     rclcpp::Subscription<obj_track_ros::msg::TrackedObject>::SharedPtr tracked_obj_sub;
     std::unordered_map<std::string, obj_track_ros::msg::TrackedObject::SharedPtr> name_to_tracked_obj;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener{nullptr};
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer;
 };
 
 }
