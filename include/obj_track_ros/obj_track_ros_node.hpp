@@ -5,15 +5,18 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
+#include "geometry_msgs/msg/transform.hpp"
 #include "rcl_interfaces/msg/parameter_descriptor.hpp"
 #include "rcl_interfaces/msg/parameter_type.hpp"
 #include "obj_track_ros/msg/tracked_object.hpp"
 #include <yaml-cpp/yaml.h>
 #include <Eigen/Dense>
+#include "tf2_ros/transform_broadcaster.h"
 
 #include <m3t/tracker.h>
 #include <m3t/generator.h>
@@ -31,13 +34,12 @@ class ObjTrackRosNode :
     ObjTrackRosNode();
     bool UpdatePublisher(int iteration) override;
     bool SetUp() override;
-    std::shared_ptr<Ros2ColorCamera> camera_color;
-    std::shared_ptr<Ros2DepthCamera> camera_depth;
     std::shared_ptr<m3t::Tracker> getTracker();
     void waitForCameras();
   private:
     void configureCameras(const std::vector<std::string> & camera_configs);
     void receiveTrackedBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg);
+    std_msgs::msg::Header getLatestImageHeader();
     std::vector<std::shared_ptr<m3t::FullNormalRenderer>> normal_renderers;
     std::vector<std::shared_ptr<Ros2ColorCamera>> color_cameras;
     std::vector<std::shared_ptr<Ros2DepthCamera>> depth_cameras;
@@ -46,6 +48,8 @@ class ObjTrackRosNode :
     std::vector<std::shared_ptr<m3t::FocusedBasicDepthRenderer>> color_renderers;
     std::vector<std::shared_ptr<m3t::FocusedBasicDepthRenderer>> depth_renderers;
     rclcpp::Subscription<obj_track_ros::msg::TrackedObject>::SharedPtr tracked_obj_sub;
+    std::unordered_map<std::string, obj_track_ros::msg::TrackedObject::SharedPtr> name_to_tracked_obj;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
 };
 
 }

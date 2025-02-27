@@ -31,6 +31,9 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 # generate msg classes
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -54,9 +57,13 @@ ament_target_dependencies(object_tracking_node
   rclcpp 
   std_msgs 
   sensor_msgs 
+  geometry_msgs
   cv_bridge 
   OpenCV
-  yaml-cpp)
+  yaml-cpp
+  tf2
+  tf2_ros
+)
 
 install(TARGETS object_tracking_node RUNTIME DESTINATION lib/${PROJECT_NAME})
 install(

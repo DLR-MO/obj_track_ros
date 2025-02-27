@@ -69,6 +69,11 @@ namespace obj_track_ros
     img_pub->publish(msg);
   }
 
+  std_msgs::msg::Header Ros2ColorCamera::getHeader()
+  {
+    return header;
+  }
+
   Ros2DepthCamera::Ros2DepthCamera(
       rclcpp::Node *node,
       const std::string &name,
@@ -98,6 +103,7 @@ namespace obj_track_ros
     auto cvim = cv_bridge::toCvCopy(msg, msg->encoding);
     cv::cvtColor(cvim->image, cvim->image, cv::COLOR_BGR2RGB);
     image_ = cvim->image;
+    header = msg->header;
     image_ready = true;
   }
 
@@ -115,5 +121,10 @@ namespace obj_track_ros
   bool Ros2DepthCamera::is_ready()
   {
     return image_ready && intrinsics_ready;
+  }
+
+  std_msgs::msg::Header Ros2DepthCamera::getHeader()
+  {
+    return header;
   }
 }

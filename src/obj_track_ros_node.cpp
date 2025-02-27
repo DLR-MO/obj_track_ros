@@ -21,7 +21,9 @@ namespace obj_track_ros
     tracker = std::make_shared<m3t::Tracker>("tracker");
     geometry = std::make_shared<m3t::RendererGeometry>("geometry");
     configureCameras(get_parameter("camera_configs").as_string_array());
+
     tracked_obj_sub = create_subscription<obj_track_ros::msg::TrackedObject>("/tracked_objects", 10, std::bind(&ObjTrackRosNode::receiveTrackedBody, this, _1));
+    tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
   }
 
   void ObjTrackRosNode::configureCameras(const std::vector<std::string> &camera_configs)
@@ -83,6 +85,28 @@ namespace obj_track_ros
     RCLCPP_INFO(get_logger(), "All cameras ready");
   }
 
+  std_msgs::msg::Header ObjTrackRosNode::getLatestImageHeader()
+  {
+    std_msgs::msg::Header latest;
+    for(auto &camera : color_cameras)
+    {
+      auto current = camera->getHeader();
+      if(current.stamp.sec > latest.stamp.sec || current.stamp.sec == latest.stamp.sec && current.stamp.nanosec > latest.stamp.nanosec)
+      {
+        latest = current;
+      }
+    }
+    for(auto &camera : depth_cameras)
+    {
+      auto current = camera->getHeader();
+      if(current.stamp.sec > latest.stamp.sec || current.stamp.sec == latest.stamp.sec && current.stamp.nanosec > latest.stamp.nanosec)
+      {
+        latest = current;
+      }
+    }
+    return latest;
+  }
+
   void ObjTrackRosNode::receiveTrackedBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg)
   {
     m3t::Transform3fA geometry2body_pose;
@@ -136,13 +160,13 @@ namespace obj_track_ros
     auto detector{std::make_shared<m3t::StaticDetector>(msg->name + "_detector", optimizer, link2world_pose)};
     tracker->AddDetector(detector);
 
-    RCLCPP_INFO(get_logger(), ("Tracker setup " + msg->name).c_str());
-
     tracker->SetUp();
     for(auto &renderer : normal_renderers)
     {
       renderer->SetUp();
     }
+
+    name_to_tracked_obj[msg->name] = msg;
 
     RCLCPP_INFO(get_logger(), ("Added body " + msg->name).c_str());
     tracker->QuitTrackerProcess();
@@ -164,6 +188,29 @@ namespace obj_track_ros
           renderer_index += 1;
         }
       }
+    }
+
+    for(auto &body : tracker->body_ptrs())
+    {
+      auto transform = body->world2body_pose();
+      auto frame = name_to_tracked_obj[body->name()]->frame;
+      auto latest_header = getLatestImageHeader();
+
+      geometry_msgs::msg::TransformStamped t;
+      t.header.stamp = latest_header.stamp;
+      t.header.frame_id = "world";
+      t.child_frame_id = frame.c_str();
+      Eigen::Quaternionf quat(transform.linear());
+      t.transform.rotation.x = quat.x();
+      t.transform.rotation.y = quat.y();
+      t.transform.rotation.z = quat.z();
+      t.transform.rotation.w = quat.w();
+      auto pos = transform.translation();
+      t.transform.translation.x = pos.x();
+      t.transform.translation.y = pos.y();
+      t.transform.translation.z = pos.z();
+
+      tf_broadcaster->sendTransform(t);
     }
 
     rclcpp::spin_some(shared_from_this());

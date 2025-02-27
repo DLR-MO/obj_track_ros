@@ -38,6 +38,8 @@ namespace obj_track_ros
 
     void publishOverlay(cv::Mat overlay);
 
+    std_msgs::msg::Header getHeader();
+
   private:
     std_msgs::msg::Header header;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub;
@@ -67,7 +69,10 @@ namespace obj_track_ros
 
     bool is_ready();
 
+    std_msgs::msg::Header getHeader();
+
   private:
+    std_msgs::msg::Header header;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub;
   };

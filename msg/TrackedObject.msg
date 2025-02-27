@@ -1,5 +1,6 @@
 string name
 string geometry_path
+string frame
 
 float32 geometry_unit_in_meter 1.0
 bool geometry_counterclockwise true
