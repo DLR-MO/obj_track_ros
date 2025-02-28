@@ -2,6 +2,8 @@
 
 Brings https://github.com/DLR-RM/3DObjectTracking to ROS2. With this package you can continuously track the pose of an object specified as mesh.
 
+![Rviz screenshot showing two images with the tracked object as overlay and the estimated pose being published as tf frame.](img/rviz_screenshot_1.png)
+
 ## Requirements
 
 * ROS2
@@ -50,12 +52,14 @@ You'll only need to supply a list of rgb/depth camera config files to be able to
   type: Ros2ColorCamera
   image_topic: /your_camera_image_topic
   info_topic: /your_camera_info_topic
+  frame: the_cameras_frame
   publish_overlay: true
 
 - name: depth_camera
   type: Ros2DepthCamera
   image_topic: /depth_image_topic
   info_topic: /depth_camera_info
+  frame: the_cameras_frame
   scale: 1.0
 ```
 
@@ -64,6 +68,7 @@ During runtime, you can then send `TrackedObject` messages to start tracking one
 ```text
 string name
 string geometry_path
+string frame
 
 float32 geometry_unit_in_meter 1.0
 bool geometry_counterclockwise true
