@@ -41,7 +41,7 @@ namespace obj_track_ros
 
     void publishOverlay(cv::Mat overlay);
 
-    void updatePose(std::shared_ptr<tf2_ros::Buffer> buffer);
+    void updatePose(std::shared_ptr<tf2_ros::Buffer> buffer, std::string base_frame);
 
     std_msgs::msg::Header getHeader();
 
@@ -76,7 +76,7 @@ namespace obj_track_ros
 
     bool is_ready();
 
-    void updatePose(std::shared_ptr<tf2_ros::Buffer> buffer);
+    void updatePose(std::shared_ptr<tf2_ros::Buffer> buffer, std::string base_frame);
 
     std_msgs::msg::Header getHeader();
 

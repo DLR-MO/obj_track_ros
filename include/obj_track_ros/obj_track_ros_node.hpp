@@ -43,6 +43,7 @@ class ObjTrackRosNode :
   private:
     void configureCameras(const std::vector<std::string> & camera_configs);
     void receiveTrackedBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg);
+    std::string base_frame;
     std_msgs::msg::Header getLatestImageHeader();
     std::vector<std::shared_ptr<m3t::FullNormalRenderer>> normal_renderers;
     std::vector<std::shared_ptr<Ros2ColorCamera>> color_cameras;

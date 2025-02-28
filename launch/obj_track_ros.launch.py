@@ -12,7 +12,8 @@ def generate_launch_description():
         executable="object_tracking_node",
         output="both",
         parameters=[
-            {"camera_configs": [ f"{path}/config/cameras.yaml" ]}
+            {"camera_configs": [ f"{path}/config/cameras.yaml" ]},
+            {"base_frame": "world" },
         ]
     )
 

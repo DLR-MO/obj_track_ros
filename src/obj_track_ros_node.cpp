@@ -12,11 +12,18 @@ namespace obj_track_ros
 {
   ObjTrackRosNode::ObjTrackRosNode() : Node("obj_track_ros"), Publisher("obj_track_ros"), Subscriber("obj_track_ros")
   {
-    auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
-    descriptor.description = "List of camera config files to use for tracking";
-    descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
+    auto cam_descriptor = rcl_interfaces::msg::ParameterDescriptor();
+    cam_descriptor.description = "List of camera config files to use for tracking";
+    cam_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING_ARRAY;
     auto cam_defaults = rclcpp::ParameterValue(std::vector<std::string>());
-    declare_parameter("camera_configs", cam_defaults, descriptor);
+    declare_parameter("camera_configs", cam_defaults, cam_descriptor);
+
+    auto frame_descriptor = rcl_interfaces::msg::ParameterDescriptor();
+    frame_descriptor.description = "The base frame of the world";
+    frame_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+    auto frame_defaults = rclcpp::ParameterValue("world");
+    declare_parameter("base_frame", frame_defaults, frame_descriptor);
+    base_frame = get_parameter("base_frame").as_string();
 
     tracker = std::make_shared<m3t::Tracker>("tracker");
     geometry = std::make_shared<m3t::RendererGeometry>("geometry");
@@ -179,11 +186,11 @@ namespace obj_track_ros
   {
     for(auto &camera : color_cameras)
     {
-      camera->updatePose(tf_buffer);
+      camera->updatePose(tf_buffer, base_frame);
     }
     for(auto &camera : depth_cameras)
     {
-      camera->updatePose(tf_buffer);
+      camera->updatePose(tf_buffer, base_frame);
     }
     return true;
   }
@@ -214,7 +221,7 @@ namespace obj_track_ros
 
       geometry_msgs::msg::TransformStamped t;
       t.header.stamp = latest_header.stamp;
-      t.header.frame_id = "world";
+      t.header.frame_id = base_frame;
       t.child_frame_id = frame.c_str();
       Eigen::Quaternionf quat(transform.linear());
       t.transform.rotation.x = quat.x();

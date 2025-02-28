@@ -71,9 +71,9 @@ namespace obj_track_ros
     img_pub->publish(msg);
   }
 
-  void Ros2ColorCamera::updatePose(std::shared_ptr<tf2_ros::Buffer> buffer)
+  void Ros2ColorCamera::updatePose(std::shared_ptr<tf2_ros::Buffer> buffer, std::string base_frame)
   {
-    auto transform = buffer->lookupTransform("world", frame, rclcpp::Time()).transform;
+    auto transform = buffer->lookupTransform(base_frame, frame, rclcpp::Time()).transform;
     auto q = transform.rotation;
     auto p = transform.translation;
     Eigen::Quaternionf quat(q.w, q.x, q.y, q.z);
@@ -144,9 +144,9 @@ namespace obj_track_ros
     return image_ready && intrinsics_ready;
   }
 
-  void Ros2DepthCamera::updatePose(std::shared_ptr<tf2_ros::Buffer> buffer)
+  void Ros2DepthCamera::updatePose(std::shared_ptr<tf2_ros::Buffer> buffer, std::string base_frame)
   {
-    auto transform = buffer->lookupTransform("world", frame, rclcpp::Time()).transform;
+    auto transform = buffer->lookupTransform(base_frame, frame, rclcpp::Time()).transform;
     auto q = transform.rotation;
     auto p = transform.translation;
     Eigen::Quaternionf quat(q.x, q.y, q.z, q.w);
