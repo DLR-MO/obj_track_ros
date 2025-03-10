@@ -73,19 +73,19 @@ namespace obj_track_ros
 
   void Ros2ColorCamera::updatePose(std::shared_ptr<tf2_ros::Buffer> buffer, std::string base_frame)
   {
-    auto transform = buffer->lookupTransform(base_frame, frame, rclcpp::Time()).transform;
-    auto q = transform.rotation;
-    auto p = transform.translation;
-    Eigen::Quaternionf quat(q.w, q.x, q.y, q.z);
-    m3t::Transform3fA t;
-    t = quat.toRotationMatrix();
-    t(0, 3) = p.x;
-    t(1, 3) = p.y;
-    t(2, 3) = p.z;
-    set_camera2world_pose(t);
-    // set_world2camera_pose(t);
-
-    // std::cout << world2camera_pose().matrix() << std::endl;
+    if(buffer->canTransform(base_frame, frame, rclcpp::Time()))
+    {
+      auto transform = buffer->lookupTransform(base_frame, frame, rclcpp::Time()).transform;
+      auto q = transform.rotation;
+      auto p = transform.translation;
+      Eigen::Quaternionf quat(q.w, q.x, q.y, q.z);
+      m3t::Transform3fA t;
+      t = quat.toRotationMatrix();
+      t(0, 3) = p.x;
+      t(1, 3) = p.y;
+      t(2, 3) = p.z;
+      set_camera2world_pose(t);
+    }
   }
 
   std_msgs::msg::Header Ros2ColorCamera::getHeader()
@@ -146,17 +146,20 @@ namespace obj_track_ros
 
   void Ros2DepthCamera::updatePose(std::shared_ptr<tf2_ros::Buffer> buffer, std::string base_frame)
   {
-    auto transform = buffer->lookupTransform(base_frame, frame, rclcpp::Time()).transform;
-    auto q = transform.rotation;
-    auto p = transform.translation;
-    Eigen::Quaternionf quat(q.x, q.y, q.z, q.w);
-    m3t::Transform3fA t;
-    t = quat.toRotationMatrix();
-    t(0, 3) = p.x;
-    t(1, 3) = p.y;
-    t(2, 3) = p.z;
-    // set_camera2world_pose(t);
-    set_world2camera_pose(t);
+    if(buffer->canTransform(base_frame, frame, rclcpp::Time()))
+    {
+      auto transform = buffer->lookupTransform(base_frame, frame, rclcpp::Time()).transform;
+      auto q = transform.rotation;
+      auto p = transform.translation;
+      Eigen::Quaternionf quat(q.x, q.y, q.z, q.w);
+      m3t::Transform3fA t;
+      t = quat.toRotationMatrix();
+      t(0, 3) = p.x;
+      t(1, 3) = p.y;
+      t(2, 3) = p.z;
+      // set_camera2world_pose(t);
+      set_world2camera_pose(t);
+    }
   }
 
   std_msgs::msg::Header Ros2DepthCamera::getHeader()
