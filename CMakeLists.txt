@@ -39,6 +39,8 @@ find_package(geometry_msgs REQUIRED)
 # rviz panel
 find_package(pluginlib REQUIRED)
 find_package(rviz_common REQUIRED)
+find_package(interactive_markers REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 qt5_wrap_cpp(MOC_FILES
@@ -93,14 +95,14 @@ target_include_directories(obj_track_panel PUBLIC
 )
 ament_target_dependencies(obj_track_panel 
   rclcpp 
-  std_msgs 
-  sensor_msgs 
+  std_msgs
   geometry_msgs
-  cv_bridge 
   tf2
   tf2_ros
   pluginlib
   rviz_common
+  interactive_markers
+  tf2_geometry_msgs
 )
 install(TARGETS obj_track_panel
         EXPORT obj_track_export_rviz_panel

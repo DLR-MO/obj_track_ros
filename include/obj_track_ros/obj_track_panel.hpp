@@ -8,6 +8,13 @@
 #include <rclcpp/client.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <chrono>
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "tf2/LinearMath/Transform.h"
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/LinearMath/Vector3.h"
+#include "tf2/transform_datatypes.h"
+
+#include "interactive_markers/interactive_marker_server.hpp"
 
 #include <QLabel>
 #include <QPushButton>
@@ -40,10 +47,10 @@ protected:
   rclcpp::Node::SharedPtr node;
 
 private:
-
+  std::unique_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 private Q_SLOTS:
-
+  void addMarker();
 };
 
 }  // namespace obj_track_ros
