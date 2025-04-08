@@ -1,0 +1,5 @@
+<library path="obj_track_panel">
+  <class type="obj_track_ros::ObjTrackPanel" base_class_type="rviz_common::Panel">
+    <description>Control what to track with the M3T ROS2 bridge</description>
+  </class>
+</library>

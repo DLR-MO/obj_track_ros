@@ -25,6 +25,7 @@ add_subdirectory(submodules/3DObjectTracking/M3T)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_ros REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -34,6 +35,19 @@ find_package(yaml-cpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+
+# rviz panel
+find_package(pluginlib REQUIRED)
+find_package(rviz_common REQUIRED)
+
+set(CMAKE_AUTOMOC ON)
+qt5_wrap_cpp(MOC_FILES
+  include/obj_track_ros/obj_track_panel.hpp
+)
+add_library(obj_track_panel 
+  src/obj_track_panel.cpp 
+  ${MOC_FILES}
+)
 
 # generate msg classes
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -63,6 +77,8 @@ ament_target_dependencies(object_tracking_node
   yaml-cpp
   tf2
   tf2_ros
+  pluginlib
+  rviz_common
 )
 
 install(TARGETS object_tracking_node RUNTIME DESTINATION lib/${PROJECT_NAME})
@@ -70,6 +86,31 @@ install(
   DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}
 )
+
+target_include_directories(obj_track_panel PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(obj_track_panel 
+  rclcpp 
+  std_msgs 
+  sensor_msgs 
+  geometry_msgs
+  cv_bridge 
+  tf2
+  tf2_ros
+  pluginlib
+  rviz_common
+)
+install(TARGETS obj_track_panel
+        EXPORT obj_track_export_rviz_panel
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
+ament_export_include_directories(include)
+ament_export_targets(obj_track_export_rviz_panel)
+pluginlib_export_plugin_description_file(rviz_common rviz_common_plugins.xml)
 
 
 if(BUILD_TESTING)

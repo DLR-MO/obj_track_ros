@@ -73,6 +73,7 @@ namespace obj_track_ros
     }
   }
 
+
   void ObjTrackRosNode::waitForCameras()
   {
     RCLCPP_INFO(get_logger(), "Wait for cameras...");
