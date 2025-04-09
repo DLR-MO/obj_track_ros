@@ -7,12 +7,49 @@ using namespace std::chrono_literals;
 
 namespace obj_track_ros
 {
+  QWidget* ObjTrackPanel::createMarkerListItem(const QString & label, const MarkerRecord & record)
+  {
+    auto widget = new QWidget();
+    auto layout = new QHBoxLayout();
+    auto checkbox = new QCheckBox();
+    checkbox->setChecked(true);
+    layout->addWidget(checkbox);
+    layout->addWidget(new QLabel(label));
+    auto deleteBtn = new QPushButton("x");
+    layout->addWidget(deleteBtn);
+    layout->setStretch(0, 1);
+    layout->setContentsMargins(2, 2, 2, 2);
+    widget->setLayout(layout);
+
+    QObject::connect(deleteBtn, &QPushButton::released, [=]() { 
+      markerList->removeItemWidget(record.item);
+      // int index = 0;
+      // for(; markers.at(index) != record; i++);
+      // auto index = std::find(markers.begin(), markers.end(), record);
+      // markers.
+    });
+
+
+    return widget;
+  }
+
   ObjTrackPanel::ObjTrackPanel(QWidget *parent) : Panel(parent)
   {
     const auto layout = new QVBoxLayout(this);
-    const auto addBtn = new QPushButton("Add Marker");
-    layout->addWidget(addBtn);
+    const auto markersGroup = new QGroupBox(tr("Markers"));
+    const auto markerGroupLayout = new QVBoxLayout();
+    markersGroup->setLayout(markerGroupLayout);
+    layout->addWidget(markersGroup);
 
+    markerList = new QListWidget();
+    markerGroupLayout->addWidget(markerList);
+
+    markerName = new QLineEdit();
+    markerGroupLayout->addWidget(markerName);
+    markerName->setPlaceholderText("Marker name");
+
+    const auto addBtn = new QPushButton("Track Object");
+    markerGroupLayout->addWidget(addBtn);
     QObject::connect(addBtn, &QPushButton::released, this, &ObjTrackPanel::addMarker);
   }
 
@@ -20,15 +57,20 @@ namespace obj_track_ros
 
   void ObjTrackPanel::addMarker()
   {
+    auto name = markerName->text().toStdString();
+    QString filename = QFileDialog::getOpenFileName(this, tr("Open OBJ"), "~", tr("Wavefront Object (*.obj)"));
+    if(filename == nullptr) return;
+
     visualization_msgs::msg::InteractiveMarker im;
     im.header.frame_id = "odom";
-    im.scale = 1;
-    im.name = "marker";
-    im.description = "marker";
+    im.scale = 0.25;
+    im.name = name.c_str();
+    im.description = im.name;
 
     // make visual marker
     visualization_msgs::msg::Marker m;
-    m.type = visualization_msgs::msg::Marker::CUBE;
+    m.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
+    m.mesh_resource = ("file://" + filename.toStdString());
     m.scale.x = 1.0;
     m.scale.y = 1.0;
     m.scale.z = 1.0;
@@ -75,6 +117,18 @@ namespace obj_track_ros
 
     server->insert(im);
     server->applyChanges();
+
+    const auto item = new QListWidgetItem();
+    markerList->addItem(item);
+    markerName->clear();
+
+    MarkerRecord record;
+    record.name = name;
+    record.file = filename.toStdString();
+    record.item = item;
+    markers.push_back(record);
+
+    markerList->setItemWidget(item, createMarkerListItem(QString::fromStdString(name), record));
   }
 
   void ObjTrackPanel::load(const rviz_common::Config &config)

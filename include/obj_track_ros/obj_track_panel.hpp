@@ -28,9 +28,20 @@
 #include <QSpinBox>
 #include <QStringList>
 #include <QFileDialog>
+#include <QListWidget>
+#include <QListWidgetItem>
+#include <QList>
+#include <QCheckBox>
 
 namespace obj_track_ros
 {
+struct MarkerRecord
+{
+  std::string name;
+  std::string file;
+  QListWidgetItem* item;
+};
+
 class ObjTrackPanel : public rviz_common::Panel
 {
   Q_OBJECT
@@ -48,6 +59,10 @@ protected:
 
 private:
   std::unique_ptr<interactive_markers::InteractiveMarkerServer> server;
+  QWidget* createMarkerListItem(const QString & label, const MarkerRecord & record);
+  QListWidget* markerList;
+  QLineEdit* markerName;
+  std::vector<MarkerRecord> markers;
 
 private Q_SLOTS:
   void addMarker();
