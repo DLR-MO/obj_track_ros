@@ -7,14 +7,6 @@ using namespace std::chrono_literals;
 
 namespace obj_track_ros
 {
-  QMap<QString, QVariant> marker_record_to_qmap(const MarkerRecord &record)
-  {
-    QMap<QString, QVariant> map;
-    map.insert("name", QString::fromStdString(record.name));
-    map.insert("file", QString::fromStdString(record.file));
-    return map;
-  }
-
   QWidget *ObjTrackPanel::createMarkerListItem(const QString &label, const MarkerRecord &record)
   {
     auto widget = new QWidget();
@@ -63,20 +55,15 @@ namespace obj_track_ros
 
     const auto addBtn = new QPushButton("Track Object");
     markerGroupLayout->addWidget(addBtn);
-    QObject::connect(addBtn, &QPushButton::released, this, &ObjTrackPanel::addMarker);
+    QObject::connect(addBtn, &QPushButton::released, this, &ObjTrackPanel::onTrackObject);
   }
 
   ObjTrackPanel::~ObjTrackPanel() = default;
 
-  void ObjTrackPanel::addMarker()
+  visualization_msgs::msg::InteractiveMarker ObjTrackPanel::createInteractiveMarker(std::string name, std::string frame, std::string filename)
   {
-    auto name = markerName->text().toStdString();
-    QString filename = QFileDialog::getOpenFileName(this, tr("Open OBJ"), "~", tr("Wavefront Object (*.obj)"));
-    if (filename == nullptr)
-      return;
-
     visualization_msgs::msg::InteractiveMarker im;
-    im.header.frame_id = markerFrame->text().toStdString();
+    im.header.frame_id = frame;
     im.scale = 0.25;
     im.name = name.c_str();
     im.description = im.name;
@@ -84,7 +71,7 @@ namespace obj_track_ros
     // make visual marker
     visualization_msgs::msg::Marker m;
     m.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
-    m.mesh_resource = ("file://" + filename.toStdString());
+    m.mesh_resource = "file://" + filename;
     m.scale.x = 1.0;
     m.scale.y = 1.0;
     m.scale.z = 1.0;
@@ -129,6 +116,12 @@ namespace obj_track_ros
     control.interaction_mode = visualization_msgs::msg::InteractiveMarkerControl::MOVE_AXIS;
     im.controls.push_back(control);
 
+    return im;
+  }
+
+  void ObjTrackPanel::addMarker(std::string name, std::string frame, std::string filename)
+  {
+    auto im = createInteractiveMarker(name, frame, filename);
     server->insert(im);
     server->applyChanges();
 
@@ -138,18 +131,29 @@ namespace obj_track_ros
 
     MarkerRecord record;
     record.name = name;
-    record.file = filename.toStdString();
+    record.file = filename;
     record.item = item;
     record.frame = im.header.frame_id;
     markers.push_back(record);
 
-    markerList->setItemWidget(item, createMarkerListItem(QString::fromStdString(name), record));
+    const auto markerWidget = createMarkerListItem(QString::fromStdString(name), record);
+    markerList->setItemWidget(item, markerWidget);
+  }
+
+  void ObjTrackPanel::onTrackObject()
+  {
+    auto name = markerName->text().toStdString();
+    QString filename = QFileDialog::getOpenFileName(this, tr("Open OBJ"), "~", tr("Wavefront Object (*.obj)"));
+    if (filename == nullptr)
+      return;
+
+    addMarker(name, markerFrame->text().toStdString(), filename.toStdString());
     configChanged();
   }
 
-  void loadQLineEdit(rviz_common::Config::MapIterator iter, std::string key, QLineEdit* el)
+  void loadQLineEdit(rviz_common::Config::MapIterator iter, std::string key, QLineEdit *el)
   {
-    if(iter.currentKey().toStdString() == key)
+    if (iter.currentKey().toStdString() == key)
     {
       el->setText(iter.currentChild().getValue().toString());
     }
@@ -163,6 +167,14 @@ namespace obj_track_ros
       {
         std::cout << "Loadings " << iter.currentKey().toStdString() << std::endl;
         loadQLineEdit(iter, "markerFrame", markerFrame);
+        if(iter.currentKey().toStdString().rfind("$marker-", 0) == 0)
+        {
+          QString name, frame, file;
+          iter.currentChild().mapGetString("name", &name);
+          iter.currentChild().mapGetString("frame", &frame);
+          iter.currentChild().mapGetString("file", &file);
+          addMarker(name.toStdString(), frame.toStdString(), file.toStdString());
+        }
       }
     }
   }
@@ -172,9 +184,12 @@ namespace obj_track_ros
     rviz_common::Panel::save(config);
     if (config.getType() == rviz_common::Config::Type::Map)
     {
-      for (int i=0; i < markers.size(); i++)
+      for (int i = 0; i < markers.size(); i++)
       {
-        config.mapSetValue( QString::fromStdString("$marker-" + std::to_string(i)), marker_record_to_qmap(markers[i]));
+        auto map = config.mapMakeChild(QString::fromStdString("$marker-" + std::to_string(i)));
+        map.mapSetValue("name",  QString::fromStdString(markers[i].name));
+        map.mapSetValue("frame", QString::fromStdString(markers[i].frame));
+        map.mapSetValue("file",  QString::fromStdString(markers[i].file));
       }
       config.mapSetValue("markerFrame", markerFrame->text());
     }

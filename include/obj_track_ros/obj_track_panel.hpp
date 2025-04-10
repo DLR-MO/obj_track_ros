@@ -67,9 +67,11 @@ private:
   QLineEdit* markerName;
   QLineEdit* markerFrame;
   std::vector<MarkerRecord> markers;
+  visualization_msgs::msg::InteractiveMarker createInteractiveMarker(std::string name, std::string frame, std::string filename);
+  void addMarker(std::string name, std::string frame, std::string filename);
 
 private Q_SLOTS:
-  void addMarker();
+  void onTrackObject();
 };
 
 }  // namespace obj_track_ros
