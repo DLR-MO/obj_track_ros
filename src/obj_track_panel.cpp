@@ -7,7 +7,15 @@ using namespace std::chrono_literals;
 
 namespace obj_track_ros
 {
-  QWidget* ObjTrackPanel::createMarkerListItem(const QString & label, const MarkerRecord & record)
+  QMap<QString, QVariant> marker_record_to_qmap(const MarkerRecord &record)
+  {
+    QMap<QString, QVariant> map;
+    map.insert("name", QString::fromStdString(record.name));
+    map.insert("file", QString::fromStdString(record.file));
+    return map;
+  }
+
+  QWidget *ObjTrackPanel::createMarkerListItem(const QString &label, const MarkerRecord &record)
   {
     auto widget = new QWidget();
     auto layout = new QHBoxLayout();
@@ -21,14 +29,14 @@ namespace obj_track_ros
     layout->setContentsMargins(2, 2, 2, 2);
     widget->setLayout(layout);
 
-    QObject::connect(deleteBtn, &QPushButton::released, [=]() { 
+    QObject::connect(deleteBtn, &QPushButton::released, [=]()
+                     { 
+      server->erase(record.name);
+      server->applyChanges();
       markerList->removeItemWidget(record.item);
-      // int index = 0;
-      // for(; markers.at(index) != record; i++);
-      // auto index = std::find(markers.begin(), markers.end(), record);
-      // markers.
-    });
-
+      int index = 0;
+      for(; markers.at(index).item != record.item; index++);
+      markers.erase(std::begin(markers) + index); });
 
     return widget;
   }
@@ -48,6 +56,11 @@ namespace obj_track_ros
     markerGroupLayout->addWidget(markerName);
     markerName->setPlaceholderText("Marker name");
 
+    markerFrame = new QLineEdit();
+    markerGroupLayout->addWidget(markerFrame);
+    markerFrame->setPlaceholderText("Parent Frame");
+    QObject::connect(markerFrame, &QLineEdit::textChanged, this, &ObjTrackPanel::configChanged);
+
     const auto addBtn = new QPushButton("Track Object");
     markerGroupLayout->addWidget(addBtn);
     QObject::connect(addBtn, &QPushButton::released, this, &ObjTrackPanel::addMarker);
@@ -59,10 +72,11 @@ namespace obj_track_ros
   {
     auto name = markerName->text().toStdString();
     QString filename = QFileDialog::getOpenFileName(this, tr("Open OBJ"), "~", tr("Wavefront Object (*.obj)"));
-    if(filename == nullptr) return;
+    if (filename == nullptr)
+      return;
 
     visualization_msgs::msg::InteractiveMarker im;
-    im.header.frame_id = "odom";
+    im.header.frame_id = markerFrame->text().toStdString();
     im.scale = 0.25;
     im.name = name.c_str();
     im.description = im.name;
@@ -79,7 +93,7 @@ namespace obj_track_ros
     m.color.b = 1.0;
     m.color.a = 1.0;
 
-    // make a 6-dof control 
+    // make a 6-dof control
     visualization_msgs::msg::InteractiveMarkerControl control;
     control.markers.push_back(m);
     control.always_visible = true;
@@ -126,9 +140,19 @@ namespace obj_track_ros
     record.name = name;
     record.file = filename.toStdString();
     record.item = item;
+    record.frame = im.header.frame_id;
     markers.push_back(record);
 
     markerList->setItemWidget(item, createMarkerListItem(QString::fromStdString(name), record));
+    configChanged();
+  }
+
+  void loadQLineEdit(rviz_common::Config::MapIterator iter, std::string key, QLineEdit* el)
+  {
+    if(iter.currentKey().toStdString() == key)
+    {
+      el->setText(iter.currentChild().getValue().toString());
+    }
   }
 
   void ObjTrackPanel::load(const rviz_common::Config &config)
@@ -137,6 +161,8 @@ namespace obj_track_ros
     {
       for (auto iter = config.mapIterator(); iter.isValid(); iter.advance())
       {
+        std::cout << "Loadings " << iter.currentKey().toStdString() << std::endl;
+        loadQLineEdit(iter, "markerFrame", markerFrame);
       }
     }
   }
@@ -146,6 +172,11 @@ namespace obj_track_ros
     rviz_common::Panel::save(config);
     if (config.getType() == rviz_common::Config::Type::Map)
     {
+      for (int i=0; i < markers.size(); i++)
+      {
+        config.mapSetValue( QString::fromStdString("$marker-" + std::to_string(i)), marker_record_to_qmap(markers[i]));
+      }
+      config.mapSetValue("markerFrame", markerFrame->text());
     }
   }
 

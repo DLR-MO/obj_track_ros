@@ -7,6 +7,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/client.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 #include <chrono>
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/LinearMath/Transform.h"
@@ -32,6 +33,7 @@
 #include <QListWidgetItem>
 #include <QList>
 #include <QCheckBox>
+#include <QMap>
 
 namespace obj_track_ros
 {
@@ -39,6 +41,7 @@ struct MarkerRecord
 {
   std::string name;
   std::string file;
+  std::string frame;
   QListWidgetItem* item;
 };
 
@@ -62,6 +65,7 @@ private:
   QWidget* createMarkerListItem(const QString & label, const MarkerRecord & record);
   QListWidget* markerList;
   QLineEdit* markerName;
+  QLineEdit* markerFrame;
   std::vector<MarkerRecord> markers;
 
 private Q_SLOTS:
