@@ -16,6 +16,8 @@
 #include "tf2/transform_datatypes.h"
 
 #include "interactive_markers/interactive_marker_server.hpp"
+#include "obj_track_ros/msg/tracked_object.hpp"
+#include "obj_track_ros/msg/tracker_control.hpp"
 
 #include <QLabel>
 #include <QPushButton>
@@ -59,6 +61,8 @@ public:
 protected:
   std::shared_ptr<rviz_common::ros_integration::RosNodeAbstractionIface> node_ptr_;
   rclcpp::Node::SharedPtr node;
+  std::shared_ptr<rclcpp::Publisher<msg::TrackedObject>> track_obj_pub;
+  std::shared_ptr<rclcpp::Publisher<msg::TrackerControl>> track_control_pub;
 
 private:
   std::unique_ptr<interactive_markers::InteractiveMarkerServer> server;
@@ -72,6 +76,8 @@ private:
 
 private Q_SLOTS:
   void onTrackObject();
+  void stopTracking();
+  void startTracking();
 };
 
 }  // namespace obj_track_ros

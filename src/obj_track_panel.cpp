@@ -15,7 +15,7 @@ namespace obj_track_ros
     checkbox->setChecked(true);
     layout->addWidget(checkbox);
     layout->addWidget(new QLabel(label));
-    auto deleteBtn = new QPushButton("x");
+    auto deleteBtn = new QPushButton("Remove");
     layout->addWidget(deleteBtn);
     layout->setStretch(0, 1);
     layout->setContentsMargins(2, 2, 2, 2);
@@ -26,9 +26,11 @@ namespace obj_track_ros
       server->erase(record.name);
       server->applyChanges();
       markerList->removeItemWidget(record.item);
+      markerList->takeItem(markerList->row(record.item));
       int index = 0;
       for(; markers.at(index).item != record.item; index++);
-      markers.erase(std::begin(markers) + index); });
+      markers.erase(std::begin(markers) + index); 
+      configChanged(); });
 
     return widget;
   }
@@ -36,6 +38,19 @@ namespace obj_track_ros
   ObjTrackPanel::ObjTrackPanel(QWidget *parent) : Panel(parent)
   {
     const auto layout = new QVBoxLayout(this);
+
+    const auto m3tControlGroup = new QGroupBox(tr("Tracking Controls"));
+    const auto m3tControlLayout = new QHBoxLayout();
+    m3tControlGroup->setLayout(m3tControlLayout);
+    const auto stopBtn = new QPushButton(tr("Pause Tracking"));
+    m3tControlLayout->addWidget(stopBtn);
+    QObject::connect(stopBtn, &QPushButton::released, this, &ObjTrackPanel::stopTracking);
+    layout->addWidget(m3tControlGroup);
+    const auto startBtn = new QPushButton(tr("Resume Tracking"));
+    m3tControlLayout->addWidget(startBtn);
+    QObject::connect(startBtn, &QPushButton::released, this, &ObjTrackPanel::startTracking);
+    layout->addWidget(m3tControlGroup);
+    
     const auto markersGroup = new QGroupBox(tr("Markers"));
     const auto markerGroupLayout = new QVBoxLayout();
     markersGroup->setLayout(markerGroupLayout);
@@ -59,6 +74,20 @@ namespace obj_track_ros
   }
 
   ObjTrackPanel::~ObjTrackPanel() = default;
+
+  void ObjTrackPanel::stopTracking()
+  {
+    msg::TrackerControl msg;
+    msg.is_stopped = true;
+    track_control_pub->publish(msg);
+  }
+
+  void ObjTrackPanel::startTracking()
+  {
+    msg::TrackerControl msg;
+    msg.is_stopped = false;
+    track_control_pub->publish(msg);
+  }
 
   visualization_msgs::msg::InteractiveMarker ObjTrackPanel::createInteractiveMarker(std::string name, std::string frame, std::string filename)
   {
@@ -138,6 +167,12 @@ namespace obj_track_ros
 
     const auto markerWidget = createMarkerListItem(QString::fromStdString(name), record);
     markerList->setItemWidget(item, markerWidget);
+
+    msg::TrackedObject msg;
+    msg.frame = name;
+    msg.name = name;
+    msg.geometry_path = filename;
+    track_obj_pub->publish(msg);
   }
 
   void ObjTrackPanel::onTrackObject()
@@ -167,7 +202,7 @@ namespace obj_track_ros
       {
         std::cout << "Loadings " << iter.currentKey().toStdString() << std::endl;
         loadQLineEdit(iter, "markerFrame", markerFrame);
-        if(iter.currentKey().toStdString().rfind("$marker-", 0) == 0)
+        if (iter.currentKey().toStdString().rfind("$marker-", 0) == 0)
         {
           QString name, frame, file;
           iter.currentChild().mapGetString("name", &name);
@@ -187,9 +222,9 @@ namespace obj_track_ros
       for (int i = 0; i < markers.size(); i++)
       {
         auto map = config.mapMakeChild(QString::fromStdString("$marker-" + std::to_string(i)));
-        map.mapSetValue("name",  QString::fromStdString(markers[i].name));
+        map.mapSetValue("name", QString::fromStdString(markers[i].name));
         map.mapSetValue("frame", QString::fromStdString(markers[i].frame));
-        map.mapSetValue("file",  QString::fromStdString(markers[i].file));
+        map.mapSetValue("file", QString::fromStdString(markers[i].file));
       }
       config.mapSetValue("markerFrame", markerFrame->text());
     }
@@ -200,12 +235,14 @@ namespace obj_track_ros
     node_ptr_ = getDisplayContext()->getRosNodeAbstraction().lock();
     node = node_ptr_->get_raw_node();
     server = std::make_unique<interactive_markers::InteractiveMarkerServer>(
-        "obj_track_ros",
+        "obj_track_ros_marker",
         node->get_node_base_interface(),
         node->get_node_clock_interface(),
         node->get_node_logging_interface(),
         node->get_node_topics_interface(),
         node->get_node_services_interface());
+    track_obj_pub = node->create_publisher<msg::TrackedObject>("/tracker/objects", 10);
+    track_control_pub = node->create_publisher<msg::TrackerControl>("/tracker/control", 10);
   }
 } // namespace obj_track_ros
 

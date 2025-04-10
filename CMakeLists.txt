@@ -54,6 +54,7 @@ add_library(obj_track_panel
 # generate msg classes
 rosidl_generate_interfaces(${PROJECT_NAME}
     msg/TrackedObject.msg
+    msg/TrackerControl.msg
     DEPENDENCIES builtin_interfaces 
 )
 
@@ -104,6 +105,7 @@ ament_target_dependencies(obj_track_panel
   interactive_markers
   tf2_geometry_msgs
 )
+target_link_libraries(obj_track_panel ${cpp_typesupport_target})
 install(TARGETS obj_track_panel
         EXPORT obj_track_export_rviz_panel
         ARCHIVE DESTINATION lib

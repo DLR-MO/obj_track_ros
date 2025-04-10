@@ -29,10 +29,12 @@ namespace obj_track_ros
     geometry = std::make_shared<m3t::RendererGeometry>("geometry");
     configureCameras(get_parameter("camera_configs").as_string_array());
 
-    tracked_obj_sub = create_subscription<obj_track_ros::msg::TrackedObject>("/tracked_objects", 10, std::bind(&ObjTrackRosNode::receiveTrackedBody, this, _1));
+    tracked_obj_sub = create_subscription<obj_track_ros::msg::TrackedObject>("/tracker/objects", 10, std::bind(&ObjTrackRosNode::receiveTrackedBody, this, _1));
     tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
     tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+
+    tracker_control_sub = create_subscription<obj_track_ros::msg::TrackerControl>("/tracker/control", 10, std::bind(&ObjTrackRosNode::receiveTrackerControl, this, _1));
   }
 
   void ObjTrackRosNode::configureCameras(const std::vector<std::string> &camera_configs)
@@ -239,6 +241,19 @@ namespace obj_track_ros
 
     rclcpp::spin_some(shared_from_this());
     return true;
+  }
+
+  void ObjTrackRosNode::receiveTrackerControl(const obj_track_ros::msg::TrackerControl::SharedPtr msg)
+  {
+    if(msg->is_stopped)
+    {
+      tracker->StopTracking();
+      RCLCPP_INFO(get_logger(), "Tracking stopped");
+    }
+    else {
+      tracker->StartTracking();
+      RCLCPP_INFO(get_logger(), "Tracking started");
+    }
   }
 
   bool ObjTrackRosNode::SetUp()
