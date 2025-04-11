@@ -146,6 +146,11 @@ namespace obj_track_ros
         targetBody->set_body2world_pose(link2world_pose);
       }
     }
+    else if(msg->command == msg->COMMAND_DELETE)
+    {
+      // TODO implement body deletion
+      RCLCPP_WARN_STREAM(get_logger(), "Delete bodies not implemented yet!");
+    }
   }
 
   void ObjTrackRosNode::createBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg, m3t::Transform3fA link2world_pose)

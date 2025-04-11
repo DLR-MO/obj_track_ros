@@ -31,7 +31,13 @@ namespace obj_track_ros
       int index = 0;
       for(; markers.at(index).item != record.item; index++);
       markers.erase(std::begin(markers) + index); 
+      msg::TrackedObject msg;
+      msg.name = record.name;
+      msg.command = msg::TrackedObject::COMMAND_DELETE;
+      track_obj_pub->publish(msg);
       configChanged(); });
+    
+    
 
     return widget;
   }
