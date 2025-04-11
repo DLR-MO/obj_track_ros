@@ -15,6 +15,7 @@
 #include "rcl_interfaces/msg/parameter_type.hpp"
 #include "obj_track_ros/msg/tracked_object.hpp"
 #include "obj_track_ros/msg/tracker_control.hpp"
+#include "obj_track_ros/msg/track_result.hpp""
 #include <yaml-cpp/yaml.h>
 #include <Eigen/Dense>
 #include "tf2_ros/transform_broadcaster.h"
@@ -61,6 +62,7 @@ class ObjTrackRosNode :
     std::vector<std::shared_ptr<m3t::FocusedBasicDepthRenderer>> depth_renderers;
     rclcpp::Subscription<obj_track_ros::msg::TrackedObject>::SharedPtr tracked_obj_sub;
     rclcpp::Subscription<obj_track_ros::msg::TrackerControl>::SharedPtr tracker_control_sub;
+    rclcpp::Publisher<obj_track_ros::msg::TrackResult>::SharedPtr track_result_pub;
     std::unordered_map<std::string, obj_track_ros::msg::TrackedObject::SharedPtr> name_to_tracked_obj;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener{nullptr};

@@ -30,12 +30,13 @@ namespace obj_track_ros
     geometry = std::make_shared<m3t::RendererGeometry>("geometry");
     configureCameras(get_parameter("camera_configs").as_string_array());
 
-    tracked_obj_sub = create_subscription<obj_track_ros::msg::TrackedObject>("/tracker/objects", 10, std::bind(&ObjTrackRosNode::receiveTrackedBody, this, _1));
+    tracked_obj_sub = create_subscription<msg::TrackedObject>("/tracker/objects", 10, std::bind(&ObjTrackRosNode::receiveTrackedBody, this, _1));
     tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
     tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 
-    tracker_control_sub = create_subscription<obj_track_ros::msg::TrackerControl>("/tracker/control", 10, std::bind(&ObjTrackRosNode::receiveTrackerControl, this, _1));
+    tracker_control_sub = create_subscription<msg::TrackerControl>("/tracker/control", 10, std::bind(&ObjTrackRosNode::receiveTrackerControl, this, _1));
+    track_result_pub = create_publisher<msg::TrackResult>("/tracker/result", 1);
   }
 
   void ObjTrackRosNode::configureCameras(const std::vector<std::string> &camera_configs)
@@ -267,6 +268,24 @@ namespace obj_track_ros
       t.transform.translation.z = pos.z();
 
       tf_broadcaster->sendTransform(t);
+
+      msg::TrackResult result;
+      result.header = t.header;
+      result.name = body->name();
+      result.frame = frame;
+      result.filename = body->geometry_path();
+      result.pose.orientation.x = quat.x();
+      result.pose.orientation.y = quat.y();
+      result.pose.orientation.z = quat.z();
+      result.pose.orientation.w = quat.w();
+      result.pose.position.x = pos.x();
+      result.pose.position.y = pos.y();
+      result.pose.position.z = pos.z();
+      for (int i = 0; i < 16; i++)
+      {
+        result.transform[i] = transform(i / 4, i % 4);
+      }
+      track_result_pub->publish(result);
     }
 
     rclcpp::spin_some(shared_from_this());

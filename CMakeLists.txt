@@ -55,7 +55,8 @@ add_library(obj_track_panel
 rosidl_generate_interfaces(${PROJECT_NAME}
     msg/TrackedObject.msg
     msg/TrackerControl.msg
-    DEPENDENCIES builtin_interfaces 
+    msg/TrackResult.msg
+    DEPENDENCIES builtin_interfaces geometry_msgs
 )
 
 # allows to link against same package message definition
