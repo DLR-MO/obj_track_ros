@@ -51,7 +51,7 @@ namespace obj_track_ros
     m3tControlLayout->addWidget(startBtn);
     QObject::connect(startBtn, &QPushButton::released, this, &ObjTrackPanel::startTracking);
     layout->addWidget(m3tControlGroup);
-    
+
     const auto markersGroup = new QGroupBox(tr("Markers"));
     const auto markerGroupLayout = new QVBoxLayout();
     markersGroup->setLayout(markerGroupLayout);
@@ -90,13 +90,33 @@ namespace obj_track_ros
     track_control_pub->publish(msg);
   }
 
-  visualization_msgs::msg::InteractiveMarker ObjTrackPanel::createInteractiveMarker(std::string name, std::string frame, std::string filename)
+  visualization_msgs::msg::InteractiveMarker ObjTrackPanel::createInteractiveMarker(std::string name, std::string frame, std::string filename, double* transform)
   {
     visualization_msgs::msg::InteractiveMarker im;
     im.header.frame_id = frame;
     im.scale = 0.25;
     im.name = name.c_str();
     im.description = im.name;
+
+    tf2::Matrix3x3 rot;
+    rot[0][0] = transform[0];
+    rot[0][1] = transform[1];
+    rot[0][2] = transform[2];
+    rot[1][0] = transform[4];
+    rot[1][1] = transform[5];
+    rot[1][2] = transform[6];
+    rot[2][0] = transform[8];
+    rot[2][1] = transform[9];
+    rot[2][2] = transform[10];
+    tf2::Quaternion quat;
+    rot.getRotation(quat);
+    im.pose.orientation.x = quat.x();
+    im.pose.orientation.y = quat.y();
+    im.pose.orientation.z = quat.z();
+    im.pose.orientation.w = quat.w();
+    im.pose.position.x = transform[3];
+    im.pose.position.y = transform[7];
+    im.pose.position.z = transform[11];
 
     // make visual marker
     visualization_msgs::msg::Marker m;
@@ -149,9 +169,9 @@ namespace obj_track_ros
     return im;
   }
 
-  void ObjTrackPanel::addMarker(std::string name, std::string frame, std::string filename)
+  void ObjTrackPanel::addMarker(std::string name, std::string frame, std::string filename, double* transform)
   {
-    auto im = createInteractiveMarker(name, frame, filename);
+    auto im = createInteractiveMarker(name, frame, filename, transform);
     server->insert(im);
     server->applyChanges();
 
@@ -173,6 +193,8 @@ namespace obj_track_ros
     msg.frame = name;
     msg.name = name;
     msg.geometry_path = filename;
+    for(int i=0; i<12; i++)
+      msg.detector_world_pose[i] = transform[i];
     track_obj_pub->publish(msg);
   }
 
@@ -195,6 +217,14 @@ namespace obj_track_ros
     tracked_obj.detector_world_pose[10] = rot[2][2];
     tracked_obj.detector_world_pose[11] = msg->pose.position.z;
     track_obj_pub->publish(tracked_obj);
+
+    int index = 0;
+    for (; markers.at(index).name != msg->marker_name; index++)
+      ;
+    for (int k = 0; k < 12; k++)
+      markers[index].transform[k] = tracked_obj.detector_world_pose[k];
+    
+    configChanged();
   }
 
   void ObjTrackPanel::onTrackObject()
@@ -203,8 +233,8 @@ namespace obj_track_ros
     QString filename = QFileDialog::getOpenFileName(this, tr("Open OBJ"), "~", tr("Wavefront Object (*.obj)"));
     if (filename == nullptr)
       return;
-
-    addMarker(name, markerFrame->text().toStdString(), filename.toStdString());
+    double transform[] = {1.0, 0.0, 0.0, 0.0,  0.0, 1.0, 0.0, 0.0,  0.0, 0.0, 1.0, 0.0};
+    addMarker(name, markerFrame->text().toStdString(), filename.toStdString(), transform);
     configChanged();
   }
 
@@ -230,7 +260,11 @@ namespace obj_track_ros
           iter.currentChild().mapGetString("name", &name);
           iter.currentChild().mapGetString("frame", &frame);
           iter.currentChild().mapGetString("file", &file);
-          addMarker(name.toStdString(), frame.toStdString(), file.toStdString());
+          auto transformConfig = iter.currentChild().mapGetChild("transform");
+          double transform[12];
+          for (auto iter_t = transformConfig.mapIterator(); iter_t.isValid(); iter_t.advance())
+            transform[iter_t.currentKey().toInt()] = iter_t.currentChild().getValue().toDouble();
+          addMarker(name.toStdString(), frame.toStdString(), file.toStdString(), transform);
         }
       }
     }
@@ -247,6 +281,9 @@ namespace obj_track_ros
         map.mapSetValue("name", QString::fromStdString(markers[i].name));
         map.mapSetValue("frame", QString::fromStdString(markers[i].frame));
         map.mapSetValue("file", QString::fromStdString(markers[i].file));
+        auto transform = map.mapMakeChild("transform");
+        for (int k = 0; k < 12; k++)
+          transform.mapSetValue(QString::fromStdString(std::to_string(k)), markers[i].transform[k]);
       }
       config.mapSetValue("markerFrame", markerFrame->text());
     }
@@ -256,7 +293,7 @@ namespace obj_track_ros
   {
     node_ptr_ = getDisplayContext()->getRosNodeAbstraction().lock();
     node = node_ptr_->get_raw_node();
-    server = std::make_unique<interactive_markers::InteractiveMarkerServer>("obj_track_ros_marker", node);    
+    server = std::make_unique<interactive_markers::InteractiveMarkerServer>("obj_track_ros_marker", node);
     track_obj_pub = node->create_publisher<msg::TrackedObject>("/tracker/objects", 10);
     track_control_pub = node->create_publisher<msg::TrackerControl>("/tracker/control", 10);
     marker_feedback_sub = node->create_subscription<visualization_msgs::msg::InteractiveMarkerFeedback>("obj_track_ros_marker/feedback", 10, std::bind(&ObjTrackPanel::onMarkerUpdate, this, _1));

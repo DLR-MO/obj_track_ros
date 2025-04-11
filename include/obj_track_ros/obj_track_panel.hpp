@@ -37,6 +37,7 @@
 #include <QList>
 #include <QCheckBox>
 #include <QMap>
+#include <QStringList>
 
 namespace obj_track_ros
 {
@@ -45,6 +46,7 @@ struct MarkerRecord
   std::string name;
   std::string file;
   std::string frame;
+  double transform[12];
   QListWidgetItem* item;
 };
 
@@ -73,8 +75,8 @@ private:
   QLineEdit* markerName;
   QLineEdit* markerFrame;
   std::vector<MarkerRecord> markers;
-  visualization_msgs::msg::InteractiveMarker createInteractiveMarker(std::string name, std::string frame, std::string filename);
-  void addMarker(std::string name, std::string frame, std::string filename);
+  visualization_msgs::msg::InteractiveMarker createInteractiveMarker(std::string name, std::string frame, std::string filename, double* transform);
+  void addMarker(std::string name, std::string frame, std::string filename, double* transform);
   void onMarkerUpdate(const visualization_msgs::msg::InteractiveMarkerFeedback::SharedPtr msg);
 private Q_SLOTS:
   void onTrackObject();
