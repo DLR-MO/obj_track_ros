@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 
 using namespace std::chrono_literals;
+using std::placeholders::_1;
 
 namespace obj_track_ros
 {
@@ -175,6 +176,27 @@ namespace obj_track_ros
     track_obj_pub->publish(msg);
   }
 
+  void ObjTrackPanel::onMarkerUpdate(const visualization_msgs::msg::InteractiveMarkerFeedback::SharedPtr msg)
+  {
+    msg::TrackedObject tracked_obj;
+    tracked_obj.name = msg->marker_name;
+    tf2::Quaternion quat(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
+    tf2::Matrix3x3 rot(quat);
+    tracked_obj.detector_world_pose[0] = rot[0][0];
+    tracked_obj.detector_world_pose[1] = rot[0][1];
+    tracked_obj.detector_world_pose[2] = rot[0][2];
+    tracked_obj.detector_world_pose[3] = msg->pose.position.x;
+    tracked_obj.detector_world_pose[4] = rot[1][0];
+    tracked_obj.detector_world_pose[5] = rot[1][1];
+    tracked_obj.detector_world_pose[6] = rot[1][2];
+    tracked_obj.detector_world_pose[7] = msg->pose.position.y;
+    tracked_obj.detector_world_pose[8] = rot[2][0];
+    tracked_obj.detector_world_pose[9] = rot[2][1];
+    tracked_obj.detector_world_pose[10] = rot[2][2];
+    tracked_obj.detector_world_pose[11] = msg->pose.position.z;
+    track_obj_pub->publish(tracked_obj);
+  }
+
   void ObjTrackPanel::onTrackObject()
   {
     auto name = markerName->text().toStdString();
@@ -234,15 +256,10 @@ namespace obj_track_ros
   {
     node_ptr_ = getDisplayContext()->getRosNodeAbstraction().lock();
     node = node_ptr_->get_raw_node();
-    server = std::make_unique<interactive_markers::InteractiveMarkerServer>(
-        "obj_track_ros_marker",
-        node->get_node_base_interface(),
-        node->get_node_clock_interface(),
-        node->get_node_logging_interface(),
-        node->get_node_topics_interface(),
-        node->get_node_services_interface());
+    server = std::make_unique<interactive_markers::InteractiveMarkerServer>("obj_track_ros_marker", node);    
     track_obj_pub = node->create_publisher<msg::TrackedObject>("/tracker/objects", 10);
     track_control_pub = node->create_publisher<msg::TrackerControl>("/tracker/control", 10);
+    marker_feedback_sub = node->create_subscription<visualization_msgs::msg::InteractiveMarkerFeedback>("obj_track_ros_marker/feedback", 10, std::bind(&ObjTrackPanel::onMarkerUpdate, this, _1));
   }
 } // namespace obj_track_ros
 

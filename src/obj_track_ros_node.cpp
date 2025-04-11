@@ -3,7 +3,8 @@
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
-namespace m3t {
+namespace m3t
+{
   template <typename T>
   extern bool AddPtrIfNameNotExists(const T &ptr, std::vector<T> *dest_ptrs);
 }
@@ -57,7 +58,7 @@ namespace obj_track_ros
           color_cameras.push_back(camera);
           auto renderer = std::make_shared<m3t::FocusedBasicDepthRenderer>(name + "_depth_renderer", geometry, camera);
           color_renderers.push_back(renderer);
-          if(publish_overlay)
+          if (publish_overlay)
           {
             auto renderer = std::make_shared<m3t::FullNormalRenderer>(name + "_normal_renderer", geometry, camera);
             normal_renderers.push_back(renderer);
@@ -74,7 +75,6 @@ namespace obj_track_ros
       }
     }
   }
-
 
   void ObjTrackRosNode::waitForCameras()
   {
@@ -101,18 +101,18 @@ namespace obj_track_ros
   std_msgs::msg::Header ObjTrackRosNode::getLatestImageHeader()
   {
     std_msgs::msg::Header latest;
-    for(auto &camera : color_cameras)
+    for (auto &camera : color_cameras)
     {
       auto current = camera->getHeader();
-      if(current.stamp.sec > latest.stamp.sec || current.stamp.sec == latest.stamp.sec && current.stamp.nanosec > latest.stamp.nanosec)
+      if (current.stamp.sec > latest.stamp.sec || current.stamp.sec == latest.stamp.sec && current.stamp.nanosec > latest.stamp.nanosec)
       {
         latest = current;
       }
     }
-    for(auto &camera : depth_cameras)
+    for (auto &camera : depth_cameras)
     {
       auto current = camera->getHeader();
-      if(current.stamp.sec > latest.stamp.sec || current.stamp.sec == latest.stamp.sec && current.stamp.nanosec > latest.stamp.nanosec)
+      if (current.stamp.sec > latest.stamp.sec || current.stamp.sec == latest.stamp.sec && current.stamp.nanosec > latest.stamp.nanosec)
       {
         latest = current;
       }
@@ -122,11 +122,40 @@ namespace obj_track_ros
 
   void ObjTrackRosNode::receiveTrackedBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg)
   {
+    if (msg->command == msg->COMMAND_SET)
+    {
+      m3t::Transform3fA link2world_pose;
+      for (int i = 0; i < 16; i++)
+      {
+        link2world_pose(i / 4, i % 4) = msg->detector_world_pose[i];
+      }
+
+      std::shared_ptr<m3t::Body> targetBody = nullptr;
+      for (auto body : tracker->body_ptrs())
+      {
+        if (body->name() == msg->name)
+          targetBody = body;
+      }
+
+      if (targetBody == nullptr)
+      {
+        createBody(msg, link2world_pose);
+      }
+      else
+      {
+        targetBody->set_body2world_pose(link2world_pose);
+      }
+    }
+  }
+
+  void ObjTrackRosNode::createBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg, m3t::Transform3fA link2world_pose)
+  {
     m3t::Transform3fA geometry2body_pose;
     for (int i = 0; i < 16; i++)
     {
       geometry2body_pose(i / 4, i % 4) = msg->geometry2body_pose[i];
     }
+
     auto body = std::make_shared<m3t::Body>(
         msg->name,
         msg->geometry_path,
@@ -134,18 +163,18 @@ namespace obj_track_ros
         msg->geometry_counterclockwise,
         msg->geometry_enable_culling,
         geometry2body_pose);
-    
+
     geometry->AddBody(body);
 
     auto link{std::make_shared<m3t::Link>(msg->name + "_link", body)};
 
-    const std::filesystem::path body_region_model_path{ "/tmp/" + msg->name + "_region_model.bin" };
+    const std::filesystem::path body_region_model_path{"/tmp/" + msg->name + "_region_model.bin"};
     auto region{std::make_shared<m3t::RegionModel>(msg->name + "_region", body, body_region_model_path)};
-    
+
     const std::filesystem::path body_depth_model_path{"/tmp/" + msg->name + "_depth_model.bin"};
     auto depth{std::make_shared<m3t::DepthModel>(msg->name + "_depth", body, body_depth_model_path)};
 
-    for(int i=0; i<color_cameras.size(); i++)
+    for (int i = 0; i < color_cameras.size(); i++)
     {
       color_renderers[i]->AddReferencedBody(body);
       auto region_modality{std::make_shared<m3t::RegionModality>(msg->name + "_region_modal_" + color_cameras[i]->name(), body, color_cameras[i], region)};
@@ -153,7 +182,7 @@ namespace obj_track_ros
       link->AddModality(region_modality);
     }
 
-    for(int i=0; i<depth_cameras.size(); i++)
+    for (int i = 0; i < depth_cameras.size(); i++)
     {
       depth_renderers[i]->AddReferencedBody(body);
       auto depth_modality{std::make_shared<m3t::DepthModality>(msg->name + "_depth_modal_" + depth_cameras[i]->name(), body, depth_cameras[i], depth)};
@@ -164,17 +193,11 @@ namespace obj_track_ros
     auto optimizer{std::make_shared<m3t::Optimizer>(msg->name + "_optimizer", link)};
     tracker->AddOptimizer(optimizer);
 
-    m3t::Transform3fA link2world_pose;
-    for (int i = 0; i < 16; i++)
-    {
-      link2world_pose(i / 4, i % 4) = msg->detector_world_pose[i];
-    }
-
     auto detector{std::make_shared<m3t::StaticDetector>(msg->name + "_detector", optimizer, link2world_pose)};
     tracker->AddDetector(detector);
 
     tracker->SetUp();
-    for(auto &renderer : normal_renderers)
+    for (auto &renderer : normal_renderers)
     {
       renderer->SetUp();
     }
@@ -187,11 +210,11 @@ namespace obj_track_ros
 
   bool ObjTrackRosNode::UpdateSubscriber(int iteration)
   {
-    for(auto &camera : color_cameras)
+    for (auto &camera : color_cameras)
     {
       camera->updatePose(tf_buffer, base_frame);
     }
-    for(auto &camera : depth_cameras)
+    for (auto &camera : depth_cameras)
     {
       camera->updatePose(tf_buffer, base_frame);
     }
@@ -201,11 +224,11 @@ namespace obj_track_ros
   bool ObjTrackRosNode::UpdatePublisher(int iteration)
   {
     int renderer_index = 0;
-    if(normal_renderers.size() > 0)
+    if (normal_renderers.size() > 0)
     {
-      for(int i=0; i < color_cameras.size(); i++)
+      for (int i = 0; i < color_cameras.size(); i++)
       {
-        if(color_cameras[i]->publish_overlay && normal_renderers[renderer_index]->set_up())
+        if (color_cameras[i]->publish_overlay && normal_renderers[renderer_index]->set_up())
         {
           normal_renderers[renderer_index]->StartRendering();
           normal_renderers[renderer_index]->FetchNormalImage();
@@ -216,7 +239,7 @@ namespace obj_track_ros
       }
     }
 
-    for(auto &body : tracker->body_ptrs())
+    for (auto &body : tracker->body_ptrs())
     {
       auto transform = body->body2world_pose();
       auto frame = name_to_tracked_obj[body->name()]->frame;
@@ -245,12 +268,13 @@ namespace obj_track_ros
 
   void ObjTrackRosNode::receiveTrackerControl(const obj_track_ros::msg::TrackerControl::SharedPtr msg)
   {
-    if(msg->is_stopped)
+    if (msg->is_stopped)
     {
       tracker->StopTracking();
       RCLCPP_INFO(get_logger(), "Tracking stopped");
     }
-    else {
+    else
+    {
       tracker->StartTracking();
       RCLCPP_INFO(get_logger(), "Tracking started");
     }
@@ -283,7 +307,7 @@ int main(int argc, char *argv[])
   };
 
   RCLCPP_INFO(node->get_logger(), "Start tracker process");
-  while(true)
+  while (true)
   {
     if (!node->getTracker()->RunTrackerProcess(true, true))
     {

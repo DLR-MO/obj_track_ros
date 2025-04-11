@@ -20,6 +20,10 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
+#include "tf2/LinearMath/Transform.hpp"
+#include "tf2/LinearMath/Quaternion.hpp"
+#include "tf2/LinearMath/Vector3.hpp"
+#include "tf2/LinearMath/Matrix3x3.hpp"
 
 #include <m3t/tracker.h>
 #include <m3t/generator.h>
@@ -45,6 +49,7 @@ class ObjTrackRosNode :
     void configureCameras(const std::vector<std::string> & camera_configs);
     void receiveTrackedBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg);
     void receiveTrackerControl(const obj_track_ros::msg::TrackerControl::SharedPtr msg);
+    void createBody(const obj_track_ros::msg::TrackedObject::SharedPtr msg, m3t::Transform3fA link2world_pose);
     std::string base_frame;
     std_msgs::msg::Header getLatestImageHeader();
     std::vector<std::shared_ptr<m3t::FullNormalRenderer>> normal_renderers;

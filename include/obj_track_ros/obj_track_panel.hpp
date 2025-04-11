@@ -16,6 +16,7 @@
 #include "tf2/transform_datatypes.h"
 
 #include "interactive_markers/interactive_marker_server.hpp"
+#include "visualization_msgs/msg/interactive_marker_feedback.hpp"
 #include "obj_track_ros/msg/tracked_object.hpp"
 #include "obj_track_ros/msg/tracker_control.hpp"
 
@@ -63,6 +64,7 @@ protected:
   rclcpp::Node::SharedPtr node;
   std::shared_ptr<rclcpp::Publisher<msg::TrackedObject>> track_obj_pub;
   std::shared_ptr<rclcpp::Publisher<msg::TrackerControl>> track_control_pub;
+  std::shared_ptr<rclcpp::Subscription<visualization_msgs::msg::InteractiveMarkerFeedback>> marker_feedback_sub;
 
 private:
   std::unique_ptr<interactive_markers::InteractiveMarkerServer> server;
@@ -73,7 +75,7 @@ private:
   std::vector<MarkerRecord> markers;
   visualization_msgs::msg::InteractiveMarker createInteractiveMarker(std::string name, std::string frame, std::string filename);
   void addMarker(std::string name, std::string frame, std::string filename);
-
+  void onMarkerUpdate(const visualization_msgs::msg::InteractiveMarkerFeedback::SharedPtr msg);
 private Q_SLOTS:
   void onTrackObject();
   void stopTracking();
