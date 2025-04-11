@@ -235,9 +235,11 @@ namespace obj_track_ros
       {
         if (color_cameras[i]->publish_overlay && normal_renderers[renderer_index]->set_up())
         {
-          normal_renderers[renderer_index]->StartRendering();
-          normal_renderers[renderer_index]->FetchNormalImage();
-          auto image = normal_renderers[renderer_index]->normal_image();
+          auto renderer = normal_renderers[renderer_index];
+          renderer->set_camera2world_pose(renderer->camera_ptr()->camera2world_pose());
+          renderer->StartRendering();
+          renderer->FetchNormalImage();
+          auto image = renderer->normal_image();
           color_cameras[i]->publishOverlay(image);
           renderer_index += 1;
         }
