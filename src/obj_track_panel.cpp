@@ -206,8 +206,16 @@ namespace obj_track_ros
 
   void ObjTrackPanel::onMarkerUpdate(const visualization_msgs::msg::InteractiveMarkerFeedback::SharedPtr msg)
   {
+    // find marker in markers
+    int index = 0;
+    for (; markers.at(index).name != msg->marker_name; index++)
+      ;
+
     msg::TrackedObject tracked_obj;
-    tracked_obj.name = msg->marker_name;
+    tracked_obj.name = markers[index].name;
+    tracked_obj.frame = markers[index].name;
+    tracked_obj.geometry_path = markers[index].file;
+
     tf2::Quaternion quat(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
     tf2::Matrix3x3 rot(quat);
     tracked_obj.detector_world_pose[0] = rot[0][0];
@@ -224,9 +232,6 @@ namespace obj_track_ros
     tracked_obj.detector_world_pose[11] = msg->pose.position.z;
     track_obj_pub->publish(tracked_obj);
 
-    int index = 0;
-    for (; markers.at(index).name != msg->marker_name; index++)
-      ;
     for (int k = 0; k < 12; k++)
       markers[index].transform[k] = tracked_obj.detector_world_pose[k];
     
