@@ -18,8 +18,8 @@ namespace obj_track_ros
   {
     this->publish_overlay = publish_overlay_;
     this->frame = frame;
-    img_sub = node->create_subscription<sensor_msgs::msg::Image>(img_topic, 10, std::bind(&Ros2ColorCamera::setImage, this, _1));
-    info_sub = node->create_subscription<sensor_msgs::msg::CameraInfo>(info_topic, 10, std::bind(&Ros2ColorCamera::setCameraInfo, this, _1));
+    img_sub = node->create_subscription<sensor_msgs::msg::Image>(img_topic, 1, std::bind(&Ros2ColorCamera::setImage, this, _1));
+    info_sub = node->create_subscription<sensor_msgs::msg::CameraInfo>(info_topic, 1, std::bind(&Ros2ColorCamera::setCameraInfo, this, _1));
     if(publish_overlay)
     {
       img_pub = node->create_publisher<sensor_msgs::msg::Image>("obj_track_ros/overlay/" + name, rclcpp::SystemDefaultsQoS());
@@ -104,8 +104,8 @@ namespace obj_track_ros
   {
     this->frame = frame;
     depth_scale_ = depth_scale;
-    img_sub = node->create_subscription<sensor_msgs::msg::Image>(img_topic, 10, std::bind(&Ros2DepthCamera::setImage, this, _1));
-    info_sub = node->create_subscription<sensor_msgs::msg::CameraInfo>(info_topic, 10, std::bind(&Ros2DepthCamera::setCameraInfo, this, _1));
+    img_sub = node->create_subscription<sensor_msgs::msg::Image>(img_topic, 1, std::bind(&Ros2DepthCamera::setImage, this, _1));
+    info_sub = node->create_subscription<sensor_msgs::msg::CameraInfo>(info_topic, 1, std::bind(&Ros2DepthCamera::setCameraInfo, this, _1));
   }
 
   bool Ros2DepthCamera::SetUp()
