@@ -8,7 +8,7 @@ Brings https://github.com/DLR-RM/3DObjectTracking to ROS2. With this package you
 
 * ROS2
 * OpenCV with modules:
-  * core 
+  * core
   * imgproc
   * highgui
   * imgcodecs
@@ -20,7 +20,7 @@ Brings https://github.com/DLR-RM/3DObjectTracking to ROS2. With this package you
 
 ## Build OpenCV
 
-If you're running on ubuntu you likely need to compile OpenCV yourself as debian does not ship the module xfeatures2d (from opencv_contrib). See https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html. A build script could look like so: 
+If you're running on ubuntu you likely need to compile OpenCV yourself as debian does not ship the module xfeatures2d (from opencv_contrib). See https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html. A build script could look like so:
 ```bash
 #!/bin/bash
 cd opencv

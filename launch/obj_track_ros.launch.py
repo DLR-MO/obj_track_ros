@@ -3,6 +3,7 @@ import launch
 import launch_ros
 from launch_param_builder import ParameterBuilder
 
+
 def generate_launch_description():
 
     path = ParameterBuilder("obj_track_ros")._package_path
@@ -12,10 +13,9 @@ def generate_launch_description():
         executable="object_tracking_node",
         output="both",
         parameters=[
-            {"camera_configs": [ f"{path}/config/cameras.yaml" ]},
-            {"base_frame": "world" },
-        ]
+            {"camera_configs": [f"{path}/config/cameras.yaml"]},
+            {"base_frame": "world"},
+        ],
     )
 
     return launch.LaunchDescription([node])
-

@@ -23,21 +23,21 @@ namespace obj_track_ros
     widget->setLayout(layout);
 
     QObject::connect(deleteBtn, &QPushButton::released, [=]()
-                     { 
+                     {
       server->erase(record.name);
       server->applyChanges();
       markerList->removeItemWidget(record.item);
       markerList->takeItem(markerList->row(record.item));
       int index = 0;
       for(; markers.at(index).item != record.item; index++);
-      markers.erase(std::begin(markers) + index); 
+      markers.erase(std::begin(markers) + index);
       msg::TrackedObject msg;
       msg.name = record.name;
       msg.command = msg::TrackedObject::COMMAND_DELETE;
       track_obj_pub->publish(msg);
       configChanged(); });
-    
-    
+
+
 
     return widget;
   }
@@ -234,7 +234,7 @@ namespace obj_track_ros
 
     for (int k = 0; k < 12; k++)
       markers[index].transform[k] = tracked_obj.detector_world_pose[k];
-    
+
     configChanged();
   }
 
