@@ -4,10 +4,6 @@ project(obj_track_ros)
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_MODULE_PATH, ${CMAKE_MODULE_PATH} /home/wiec_fa/.local)
-include_directories(/home/wiec_fa/.local/include/opencv4)
-include_directories(3DObjectTracking/third_party)
-
 find_package(OpenCV 4.11.0 
 REQUIRED COMPONENTS core imgproc highgui imgcodecs calib3d features2d xfeatures2d 
 OPTIONAL_COMPONENTS cudafeatures2d

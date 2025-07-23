@@ -27,7 +27,7 @@ cd opencv
 mkdir build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/home/USER/.local/ -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules -DBUILD_opencv_xfeatures2d=ON ..
+cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/home/USER/.local/ -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.x/modules -DBUILD_opencv_xfeatures2d=ON ../opencv-4.x
 
 make -j8
 make install
