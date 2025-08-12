@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>obj_track_ros</name>
-  <version>0.0.0</version>
+  <version>0.1.0</version>
   <description>ROS 2 camera topic bridge for 3DObjectTracking</description>
   <maintainer email="fabian.wieczorek@dlr.de">wiec_fa</maintainer>
   <license>MIT</license>
