@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required(VERSION 3.8)
 project(obj_track_ros)
 

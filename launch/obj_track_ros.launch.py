@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+# SPDX-License-Identifier: MIT
+
 import os
 import launch
 import launch_ros

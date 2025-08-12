@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+// SPDX-License-Identifier: MIT
+
 #ifndef OBJ_TRACK_ROS__OBJ_TRACK_PANEL_HPP_
 #define OBJ_TRACK_ROS__OBJ_TRACK_PANEL_HPP_
 

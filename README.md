@@ -1,3 +1,7 @@
+<!--
+SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+SPDX-License-Identifier: MIT
+-->
 # obj_track_ros
 
 Enables running [3DObjectTracking](https://github.com/DLR-RM/3DObjectTracking) with ROS 2 camera feeds.

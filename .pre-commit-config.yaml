@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: NONE
+# SPDX-License-Identifier: CC0-1.0
+#
 # To use:
 #
 #     pre-commit run -a
@@ -62,3 +65,8 @@ repos:
                --disabled-codes=C0307,
                --suppress-decorations
               ]
+
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v5.0.2
+    hooks:
+      - id: reuse

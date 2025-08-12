@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+// SPDX-License-Identifier: MIT
+
 #include <obj_track_ros/obj_track_panel.hpp>
 #include <rviz_common/display_context.hpp>
 #include <QVBoxLayout>
