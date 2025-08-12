@@ -5,7 +5,7 @@ With this package you can continuously track the poses of rigid objects specifie
 
 The ROS 2 node is configured at launch to subscribe to one or multiple camera feeds.
 Tracked objects are registered by publishing [TrackedObject](./msg/TrackedObject.msg) messages to the node at runtime.
-The results can be observed by subscribing to the [TrackedResult](./msg/TrackedResult.msg) messages, or visualized as overlay in RViz.
+The results can be observed by subscribing to the [TrackResult](./msg/TrackResult.msg) messages, or visualized as overlay in RViz.
 
 ![Rviz screenshot showing two images with the tracked object as overlay and the estimated pose being published as tf frame.](img/rviz_screenshot_1.png)
 
@@ -85,7 +85,7 @@ The yaml config defines a list of rgb or depth cameras used by the tracking node
   scale: 1.0
 ```
 
-During runtime, you can then send `[TrackedObject](./msg/TrackedObject.msg)` messages to start tracking specific objects.
+During runtime, you can then send [TrackedObject](./msg/TrackedObject.msg) messages to start tracking specific objects.
 
 ```text
 string name
