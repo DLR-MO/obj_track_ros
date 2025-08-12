@@ -3,9 +3,9 @@
 <package format="3">
   <name>obj_track_ros</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>ROS 2 camera topic bridge for 3DObjectTracking</description>
   <maintainer email="fabian.wieczorek@dlr.de">wiec_fa</maintainer>
-  <license>TODO: License declaration</license>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>pluginlib</depend>
