@@ -4,14 +4,14 @@ Enables running [3DObjectTracking](https://github.com/DLR-RM/3DObjectTracking) w
 With this package you can continuously track the poses of rigid objects specified as mesh geometries.
 
 The ROS 2 node is configured at launch to subscribe to one or multiple camera feeds.
-Tracked objects are registered by publishing TrackedObject messages to the node at runtime.
-The results can be observed by subscribing to the TrackResult messages, or visualized as overlay in RViz.
+Tracked objects are registered by publishing [TrackedObject](./msg/TrackedObject.msg) messages to the node at runtime.
+The results can be observed by subscribing to the [TrackedResult](./msg/TrackedResult.msg) messages, or visualized as overlay in RViz.
 
 ![Rviz screenshot showing two images with the tracked object as overlay and the estimated pose being published as tf frame.](img/rviz_screenshot_1.png)
 
 ## Installation
 
-### Prerequisites
+This package is currently only provided as source build, and requires the following dependencies to be provided:
 
 * **ROS 2** Jazzy (or newer) with configured rosdeps
 * **OpenCV** including the modules:
@@ -29,6 +29,7 @@ If you're running on Ubuntu you likely need to compile OpenCV yourself as debian
 Detailed instructions for a build install of OpenCV can be found at https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html.
 
 This condensed version of the install instructions should work on most systems (run from anywhere outside the colcon workspace):
+
 ```bash
 # Install minimal prerequisites
 sudo apt update && sudo apt install -y cmake g++ wget unzip
@@ -52,11 +53,15 @@ make install
 
 ### Build this package
 
-Clone this repository _recursively_ with `git clone --recursive https://gitlab.dlr.de/mo-repo/rar/obj_track_ros.git` into a colcon workspace.
+Clone this repository _recursively_ into a colcon workspace.
 
-Install all ROS dependencies by running `rosdep install --from-path ./obj_track_ros --ignore-src --rosdistro $ROS_DISTRO`.
+```git clone --recursive https://gitlab.dlr.de/mo-repo/rar/obj_track_ros.git```
 
-Build the workspace with `colcon build --symlink-install` as usual.
+Install all ROS dependencies using rosdep.
+
+```rosdep install --from-path ./obj_track_ros --ignore-src --rosdistro $ROS_DISTRO```
+
+Finally, build the workspace with `colcon build --symlink-install` as usual.
 
 ## Getting Started
 
@@ -80,7 +85,7 @@ The yaml config defines a list of rgb or depth cameras used by the tracking node
   scale: 1.0
 ```
 
-During runtime, you can then send `TrackedObject` messages to start tracking specific objects.
+During runtime, you can then send `[TrackedObject](./msg/TrackedObject.msg)` messages to start tracking specific objects.
 
 ```text
 string name
@@ -92,5 +97,4 @@ bool geometry_counterclockwise true
 bool geometry_enable_culling false
 float32[16] geometry2body_pose [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ]
 float32[16] detector_world_pose [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.05, 0.0, 1.0, 0.0, 0.5, 0.0, 0.0, 0.0, 1.0 ]
-
 ```
