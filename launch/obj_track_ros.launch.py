@@ -1,7 +1,11 @@
+# SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+# SPDX-License-Identifier: MIT
+
 import os
 import launch
 import launch_ros
 from launch_param_builder import ParameterBuilder
+
 
 def generate_launch_description():
 
@@ -12,10 +16,9 @@ def generate_launch_description():
         executable="object_tracking_node",
         output="both",
         parameters=[
-            {"camera_configs": [ f"{path}/config/cameras.yaml" ]},
-            {"base_frame": "world" },
-        ]
+            {"camera_configs": [f"{path}/config/cameras.yaml"]},
+            {"base_frame": "world"},
+        ],
     )
 
     return launch.LaunchDescription([node])
-

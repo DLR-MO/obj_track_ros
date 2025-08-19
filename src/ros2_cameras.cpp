@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+// SPDX-License-Identifier: MIT
+
 #include "obj_track_ros/ros2_cameras.hpp"
 
 using std::placeholders::_1;

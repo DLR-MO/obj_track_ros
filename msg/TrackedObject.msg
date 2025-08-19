@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+# SPDX-License-Identifier: MIT
+
 int32 COMMAND_SET=0
 int32 COMMAND_DELETE=2
 

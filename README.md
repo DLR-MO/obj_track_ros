@@ -1,51 +1,77 @@
+<!--
+SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+SPDX-License-Identifier: MIT
+-->
 # obj_track_ros
 
-Brings https://github.com/DLR-RM/3DObjectTracking to ROS2. With this package you can continuously track the pose of an object specified as mesh.
+Enables running [3DObjectTracking](https://github.com/DLR-RM/3DObjectTracking) with ROS 2 camera feeds.
+With this package you can continuously track the poses of rigid objects specified as mesh geometries.
+
+The ROS 2 node is configured at launch to subscribe to one or multiple camera feeds.
+Tracked objects are registered by publishing [TrackedObject](./msg/TrackedObject.msg) messages to the node at runtime.
+The results can be observed by subscribing to the [TrackResult](./msg/TrackResult.msg) messages, or visualized as overlay in RViz.
 
 ![Rviz screenshot showing two images with the tracked object as overlay and the estimated pose being published as tf frame.](img/rviz_screenshot_1.png)
 
-## Requirements
+## Installation
 
-* ROS2
-* OpenCV with modules:
-  * core 
+This package is currently only provided as source build, and requires the following dependencies to be provided:
+
+* **ROS 2** Jazzy (or newer) with configured rosdeps
+* **OpenCV** including the modules:
+  * core
   * imgproc
   * highgui
   * imgcodecs
   * calib3d
   * features2d
   * **xfeatures2d** (not installed in debian distribution)
-* yaml-cpp
-* cv_bridge
 
-## Build OpenCV
+#### Build OpenCV
 
-If you're running on ubuntu you likely need to compile OpenCV yourself as debian does not ship the module xfeatures2d (from opencv_contrib). See https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html. A build script could look like so: 
+If you're running on Ubuntu you likely need to compile OpenCV yourself as debian does not ship the module xfeatures2d (from opencv_contrib).
+Detailed instructions for a build install of OpenCV can be found at https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html.
+
+This condensed version of the install instructions should work on most systems (run from anywhere outside the colcon workspace):
+
 ```bash
-#!/bin/bash
-cd opencv
-mkdir build
-cd build
+# Install minimal prerequisites
+sudo apt update && sudo apt install -y cmake g++ wget unzip
 
-cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/home/USER/.local/ -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules -DBUILD_opencv_xfeatures2d=ON ..
+# Download and unpack sources
+wget -O opencv.zip https://github.com/opencv/opencv/archive/4.x.zip
+wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/4.x.zip
+unzip opencv.zip
+unzip opencv_contrib.zip
 
+# Create build directory and switch into it
+mkdir -p build && cd build
+
+# Configure, including xfeatures2d
+cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/home/$USER/.local/ -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.x/modules -DBUILD_opencv_xfeatures2d=ON ../opencv-4.x
+
+# Build and install
 make -j8
 make install
 ```
 
-This script requires `opencv` and `opencv_contrib` to be in the same directory as the script.
+### Build this package
 
-## Build
+Clone this repository _recursively_ into a colcon workspace.
 
-Clone this repo _recursively_ with `git clone --recursive https://gitlab.dlr.de/mo-repo/rar/obj_track_ros.git`
+```git clone --recursive https://gitlab.dlr.de/mo-repo/rar/obj_track_ros.git```
 
-Run `colcon build --symlink-install` as usual.
+Install all ROS dependencies using rosdep.
 
-## Run
+```rosdep install --from-path ./obj_track_ros --ignore-src --rosdistro $ROS_DISTRO```
+
+Finally, build the workspace with `colcon build --symlink-install` as usual.
+
+## Getting Started
 
 See in `/launch` and `/config` for a concrete working example.
 
-You'll only need to supply a list of rgb/depth camera config files to be able to start the node:
+The yaml config defines a list of rgb or depth cameras used by the tracking node:
 
 ```yaml
 - name: color_camera
@@ -63,7 +89,7 @@ You'll only need to supply a list of rgb/depth camera config files to be able to
   scale: 1.0
 ```
 
-During runtime, you can then send `TrackedObject` messages to start tracking one specific object.
+During runtime, you can then send [TrackedObject](./msg/TrackedObject.msg) messages to start tracking specific objects.
 
 ```text
 string name
@@ -75,5 +101,4 @@ bool geometry_counterclockwise true
 bool geometry_enable_culling false
 float32[16] geometry2body_pose [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ]
 float32[16] detector_world_pose [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.05, 0.0, 1.0, 0.0, 0.5, 0.0, 0.0, 0.0, 1.0 ]
-
 ```

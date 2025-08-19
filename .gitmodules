@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: NONE
+# SPDX-License-Identifier: CC0-1.0
+
 [submodule "submodules/3DObjectTracking"]
 	path = submodules/3DObjectTracking
 	url = https://github.com/DLR-RM/3DObjectTracking.git

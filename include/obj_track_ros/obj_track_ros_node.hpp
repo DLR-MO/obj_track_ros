@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+// SPDX-License-Identifier: MIT
+
 #ifndef OBJ_TRACK_ROS_HPP
 #define OBJ_TRACK_ROS_HPP
 
@@ -34,8 +37,8 @@
 namespace obj_track_ros
 {
 
-class ObjTrackRosNode : 
-  public rclcpp::Node, 
+class ObjTrackRosNode :
+  public rclcpp::Node,
   public m3t::Publisher,
   public m3t::Subscriber
 {

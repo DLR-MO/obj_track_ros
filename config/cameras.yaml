@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 Fabian Wieczorek, German Aerospace Center (DLR)
+# SPDX-License-Identifier: MIT
+
 # - name: color_camera
 #   type: Ros2ColorCamera
 #   frame: ee_camera
