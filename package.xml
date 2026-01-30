@@ -18,6 +18,7 @@ SPDX-License-Identifier: MIT
   <depend>interactive_markers</depend>
   <depend>libglfw3-dev</depend>
   <depend>libglew-dev</depend>
+  <depend>backward-ros</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

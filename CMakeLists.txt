@@ -19,7 +19,7 @@ find_package(
   OPTIONAL_COMPONENTS cudafeatures2d)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wfatal-errors)
 endif()
 
 option(USE_AZURE_KINECT "Use Azure Kinect" OFF)
@@ -39,6 +39,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(backward_ros REQUIRED)
 
 # rviz panel
 find_package(pluginlib REQUIRED)
